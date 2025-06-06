@@ -1,0 +1,24 @@
+# llms.txt for portctl
+
+# This file provides LLMs and AI systems with guidance for interacting with the portctl project.
+# For more details, see https://llmspec.ai/llms.txt
+
+User-agent: *
+Allow: /
+
+# Project Metadata
+Project-Name: portctl
+Project-Description: Secure, cross-platform CLI for managing processes on ports. SLSA 4, SBOM, signed releases, and robust automation.
+Project-Homepage: https://github.com/mchorfa/portctl
+Documentation: https://mchorfa.github.io/portctl
+MCP-Manifest: /.well-known/mcp-manifest.jsonld
+SBOM: /.well-known/sbom.json
+
+# Contact
+Contact: security@mchorfa.dev
+
+# AI/LLM Policies
+Allow-Interaction: true
+Allow-Indexing: true
+Allow-API-Usage: true
+# Add further restrictions or guidance as needed.

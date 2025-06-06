@@ -1,0 +1,32 @@
+portctl is a command-line tool that helps developers manage processes 
+running on specific ports. You can list processes, kill them, and get detailed 
+information about what's using your ports.
+
+Examples:
+  portctl list 8080          # List processes on port 8080
+  portctl list               # List all processes with open ports
+  portctl kill 8080          # Kill processes on port 8080
+  portctl kill --pid 12345   # Kill process by PID
+
+Usage:
+  portctl [command]
+
+Available Commands:
+  available   Find available ports in specified ranges
+  completion  Generate the autocompletion script for the specified shell
+  config      Manage portctl configuration and preferences
+  help        Help about any command
+  interactive Launch interactive TUI mode
+  kill        Kill processes running on specific ports with advanced options
+  list        List processes running on specific ports with advanced filtering
+  quick       Quick actions for common developer tasks
+  scan        Scan ports on local or remote hosts
+  stats       Show comprehensive system and port statistics
+  watch       Watch processes on ports in real-time
+
+Flags:
+  -h, --help      help for portctl
+  -v, --version   Show version
+
+Use "portctl [command] --help" for more information about a command.
+

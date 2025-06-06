@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - name: Install Dagger CLI
+        run: |
+          curl -L https://dl.dagger.io/dagger/install.sh | sh
+          echo "$HOME/.dagger/bin" >> $GITHUB_PATH
+      - name: Lint
+        run: dagger call lint
+      - name: TDD (unit/integration)
+        run: dagger call test
+      - name: BDD (Godog)
+        run: dagger call bdd
+      - name: Security scan (gosec)
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest && gosec ./...
+      - name: Vulnerability scan (govulncheck)
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...
+      - name: Build
+        run: dagger call build
+      - name: Release (GoReleaser)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dagger call release
+      - name: Generate API docs
+        run: go install golang.org/x/tools/cmd/godoc@latest && godoc -html > docs/api/index.html
+      - name: Deploy docs to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs

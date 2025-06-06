@@ -1,0 +1,55 @@
+# GoReleaser config for portctl
+# SLSA, SBOM, Homebrew, Changelog, Multi-platform, Signed, Audit
+version: 2
+project_name: portctl
+builds:
+  - id: portctl
+    main: ./cmd/portctl
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags: -s -w -X dagger/portctl/cmd.Version={{.Version}}
+    env:
+      - CGO_ENABLED=0
+archives:
+  - id: default
+    ids: [portctl]
+    formats: [tar.gz]
+    files:
+      - LICENSE
+      - README.md
+      - .well-known/**
+changelog:
+  sort: desc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+# signs:
+#   - artifacts: all
+#     cmd: cosign
+#     args: [sign, $artifact]
+sboms:
+  - id: default
+    artifacts: archive
+brews:
+  - name: portctl
+    repository:
+      owner: mchorfa
+      name: homebrew-tap
+    description: Secure, cross-platform CLI for managing processes on ports.
+    homepage: https://github.com/mchorfa/portctl
+    install: |
+      bin.install "portctl"
+dockers:
+  - image_templates:
+      - ghcr.io/mchorfa/portctl:latest
+      - ghcr.io/mchorfa/portctl:{{ .Version }}
+    dockerfile: ./Dockerfile
+    build_flag_templates:
+      - --platform=linux/amd64,linux/arm64
+release:
+  github:
+    owner: mchorfa
+    name: portctl
+  draft: false
+  prerelease: auto

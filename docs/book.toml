@@ -1,0 +1,6 @@
+[book]
+title = "portctl Documentation"
+author = "M. Chorfa and Contributors"
+description = "Secure, cross-platform CLI for managing processes on ports. SLSA 4, SBOM, signed releases, robust automation."
+multilingual = false
+src = "src"
