@@ -30,14 +30,18 @@ import (
 	dagger "dagger.io/dagger"
 )
 
+// Portctl is the Dagger pipeline module for the portctl project.
+// It provides composable CI/CD steps callable from any workflow.
 type Portctl struct{}
 
 // --- Go Module Cache Helper ---
+// goModCache returns a Dagger cache volume for Go modules.
 func (m *Portctl) goModCache(client *dagger.Client) *dagger.CacheVolume {
 	return client.CacheVolume("go-mod-cache")
 }
 
 // --- Helper: Find Go Module Root ---
+// findGoModRoot locates the nearest go.mod in the current or parent directories.
 func findGoModRoot() (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -58,6 +62,7 @@ func findGoModRoot() (string, error) {
 }
 
 // --- Lint Step ---
+// Lint runs golangci-lint on the project source code.
 func (m *Portctl) Lint(ctx context.Context) (string, error) {
 	fmt.Println("[Dagger] Running golangci-lint...")
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
@@ -79,6 +84,7 @@ func (m *Portctl) Lint(ctx context.Context) (string, error) {
 }
 
 // --- Enhanced Test Step (with --source support and advanced debugging) ---
+// Test runs Go tests for the specified package, with optional coverage and output path. Supports --source for custom source directory.
 func (m *Portctl) Test(ctx context.Context, pkg string, cover bool, outPath string, source string) (string, error) {
 	var modRoot string
 	var err error
@@ -127,6 +133,7 @@ func (m *Portctl) Test(ctx context.Context, pkg string, cover bool, outPath stri
 }
 
 // --- Enhanced Build Step (with --source support and advanced debugging) ---
+// Build compiles the portctl binary. Supports --outPath for output and --source for custom source directory.
 func (m *Portctl) Build(ctx context.Context, outPath string, source string) (string, error) {
 	var modRoot string
 	var err error
@@ -167,6 +174,7 @@ func (m *Portctl) Build(ctx context.Context, outPath string, source string) (str
 }
 
 // --- SnapshotTest Step ---
+// SnapshotTest runs Cupaloy snapshot tests in internal/snapshots.
 func (m *Portctl) SnapshotTest(ctx context.Context) (string, error) {
 	fmt.Println("[Dagger] Running Cupaloy snapshot tests...")
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
@@ -190,6 +198,7 @@ func (m *Portctl) SnapshotTest(ctx context.Context) (string, error) {
 }
 
 // --- Release Step ---
+// Release runs GoReleaser to build and package the project, exporting artifacts.
 func (m *Portctl) Release(ctx context.Context) (string, error) {
 	fmt.Println("[Dagger] Running GoReleaser...")
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
@@ -220,6 +229,7 @@ func (m *Portctl) Release(ctx context.Context) (string, error) {
 }
 
 // --- Docs Step ---
+// Docs builds project documentation using mdBook and updates pipeline docs.
 func (m *Portctl) Docs(ctx context.Context) (string, error) {
 	fmt.Println("[Dagger] Building documentation with mdBook and updating for new pipeline features...")
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
@@ -242,6 +252,7 @@ func (m *Portctl) Docs(ctx context.Context) (string, error) {
 }
 
 // --- PublishDocs Step ---
+// PublishDocs publishes mdBook documentation to the gh-pages branch on GitHub.
 func (m *Portctl) PublishDocs(ctx context.Context) (string, error) {
 	fmt.Println("[Dagger] Publishing mdBook docs to GitHub Pages (gh-pages branch)...")
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
@@ -293,6 +304,7 @@ func (m *Portctl) PublishDocs(ctx context.Context) (string, error) {
 }
 
 // --- TDD/BDD Step ---
+// BDD runs godog BDD tests and enforces 80% code coverage.
 func (m *Portctl) BDD(ctx context.Context) (string, error) {
 	fmt.Println("[Dagger] Running BDD (godog) tests and enforcing 80% coverage...")
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
@@ -317,6 +329,7 @@ func (m *Portctl) BDD(ctx context.Context) (string, error) {
 }
 
 // --- WellKnown Step ---
+// WellKnown validates .well-known metadata files for compliance and correctness.
 func (m *Portctl) WellKnown(ctx context.Context) (string, error) {
 	fmt.Println("[Dagger] Validating .well-known metadata files...")
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
@@ -345,6 +358,7 @@ func (m *Portctl) WellKnown(ctx context.Context) (string, error) {
 }
 
 // --- Security Scan Step (with --source support and advanced debugging) ---
+// SecurityScan runs gosec on the project source to detect security issues. Supports --source for custom source directory.
 func (m *Portctl) SecurityScan(ctx context.Context, source string) (string, error) {
 	var modRoot string
 	var err error
@@ -383,6 +397,7 @@ func (m *Portctl) SecurityScan(ctx context.Context, source string) (string, erro
 }
 
 // --- SBOM Generation Step (patched: install Syft at runtime) ---
+// SBOM generates a Software Bill of Materials (SBOM) using Syft.
 func (m *Portctl) SBOM(ctx context.Context) (string, error) {
 	fmt.Println("[Dagger] Generating SBOM with Syft...")
 	client, err := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
@@ -404,6 +419,7 @@ func (m *Portctl) SBOM(ctx context.Context) (string, error) {
 }
 
 // --- Artifact Upload Step ---
+// UploadArtifact uploads a file from srcPath and stores it as dstName in the artifact output.
 func (m *Portctl) UploadArtifact(ctx context.Context, srcPath, dstName string) (string, error) {
 	if srcPath == "" || dstName == "" {
 		return "", fmt.Errorf("src and dst must be specified")
@@ -427,6 +443,7 @@ func (m *Portctl) UploadArtifact(ctx context.Context, srcPath, dstName string) (
 }
 
 // --- Help Step (document --source param) ---
+// Help prints available Dagger steps and their parameters.
 func (m *Portctl) Help(ctx context.Context) (string, error) {
 	help := `
 Available Dagger steps:
