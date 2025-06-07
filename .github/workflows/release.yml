@@ -25,6 +25,11 @@ jobs:
           curl -L https://dl.dagger.io/dagger/install.sh | sh
           echo "$HOME/.dagger/bin" >> $GITHUB_PATH
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.3'
+
       - name: Dagger Lint
         run: dagger call lint
 
@@ -33,11 +38,23 @@ jobs:
 
       - name: Dagger Build
         run: dagger call build
+      - name: Upload Build Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: ./artifacts
 
       - name: Dagger Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: dagger call release
+      - name: Upload Release Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: ./artifacts
 
       # Optional: Install Cosign for verification/debugging
       - name: Install Cosign
@@ -89,4 +106,15 @@ jobs:
       #   run: |
       #     cosign verify ghcr.io/${{ github.repository_owner }}/portctl:$(git describe --tags) \
       #       --certificate-identity "https://github.com/${{ github.repository_owner }}/${{ github.repository }}" \
-      #       --certificate-oidc-issuer "https://token.actions.githubusercontent.com" 
+      #       --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+
+      - name: Dagger Deploy (optional)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dagger call deploy --src=.
+      - name: Upload Deploy Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-artifacts
+          path: ./artifacts 

@@ -306,7 +306,10 @@ func findNextPort(pm *process.ProcessManager) {
 
 	if quickExport {
 		// Actually export the PORT environment variable
-		os.Setenv("PORT", strconv.Itoa(port))
+		if err := os.Setenv("PORT", strconv.Itoa(port)); err != nil {
+			// TODO: handle error appropriately (log, return, etc.)
+			return
+		}
 		color.Green("✅ Exported PORT=%d to current shell", port)
 	}
 }

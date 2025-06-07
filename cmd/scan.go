@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
 	tablepretty "github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
-	"github.com/briandowns/spinner"
 )
 
 var (
@@ -125,7 +125,7 @@ func parsePortRange(portStr string) ([]int, error) {
 	ranges := strings.Split(portStr, ",")
 	for _, r := range ranges {
 		r = strings.TrimSpace(r)
-		
+
 		if strings.Contains(r, "-") {
 			// Handle range like "80-90"
 			parts := strings.Split(r, "-")
@@ -172,7 +172,7 @@ func scanPorts(host string, ports []int) []ScanResult {
 		wg.Add(1)
 		go func(idx, p int) {
 			defer wg.Done()
-			sem <- struct{}{} // Acquire semaphore
+			sem <- struct{}{}        // Acquire semaphore
 			defer func() { <-sem }() // Release semaphore
 
 			results[idx] = scanPort(host, p)
@@ -197,11 +197,16 @@ func scanPort(host string, port int) ScanResult {
 		result.Error = err
 		return result
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			// TODO: handle error appropriately (log, etc.)
+			fmt.Println("conn.Close() error:", err)
+		}
+	}()
 
 	result.Status = "open"
 	result.Service = getServiceName(port)
-	
+
 	// Try to grab banner
 	banner := grabBanner(conn, port)
 	if banner != "" {
@@ -214,7 +219,7 @@ func scanPort(host string, port int) ScanResult {
 func getServiceName(port int) string {
 	services := map[int]string{
 		21:   "FTP",
-		22:   "SSH", 
+		22:   "SSH",
 		23:   "Telnet",
 		25:   "SMTP",
 		53:   "DNS",
@@ -246,7 +251,7 @@ func grabBanner(conn net.Conn, port int) string {
 	if err := conn.SetReadDeadline(time.Now().Add(3 * time.Second)); err != nil {
 		return ""
 	}
-	
+
 	// Send HTTP request for web services
 	if port == 80 || port == 8080 || port == 443 {
 		if _, err := conn.Write([]byte("HEAD / HTTP/1.0\r\n\r\n")); err != nil {
@@ -267,7 +272,7 @@ func grabBanner(conn net.Conn, port int) string {
 	if len(banner) > 100 {
 		banner = banner[:100] + "..."
 	}
-	
+
 	return banner
 }
 
@@ -283,10 +288,10 @@ func displayScanResults(results []ScanResult) {
 	// Set column configs for alignment and color
 	t.SetColumnConfigs([]tablepretty.ColumnConfig{
 		{Number: 1, Align: text.AlignRight, Colors: text.Colors{text.FgCyan, text.Bold}}, // Port
-		{Number: 2, Align: text.AlignCenter}, // Protocol
-		{Number: 3, Align: text.AlignLeft, Colors: text.Colors{text.Bold}}, // Service
-		{Number: 4, Align: text.AlignCenter}, // Status
-		{Number: 5, Align: text.AlignLeft, Colors: text.Colors{text.FgYellow}}, // Banner
+		{Number: 2, Align: text.AlignCenter},                                             // Protocol
+		{Number: 3, Align: text.AlignLeft, Colors: text.Colors{text.Bold}},               // Service
+		{Number: 4, Align: text.AlignCenter},                                             // Status
+		{Number: 5, Align: text.AlignLeft, Colors: text.Colors{text.FgYellow}},           // Banner
 	})
 
 	for _, result := range results {
