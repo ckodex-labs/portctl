@@ -8,7 +8,7 @@ BUILD_DIR=build
 
 # Default target
 .PHONY: all
-all: build
+all: build lint vet test test-coverage sec vuln docs
 
 # Build for current platform
 .PHONY: build
@@ -160,5 +160,48 @@ help:
 # Generate API docs
 .PHONY: docs
 docs:
-	go install golang.org/x/tools/cmd/godoc@latest
-	godoc -html > docs/api/index.html
+	@mkdir -p docs/api
+	@echo '<html><head><title>portctl API Documentation</title></head><body><h1>portctl API Documentation</h1><pre>' > docs/api/index.html
+	@go doc -all dagger/portctl/cmd >> docs/api/index.html
+	@go doc -all dagger/portctl/pkg >> docs/api/index.html
+	@echo '</pre></body></html>' >> docs/api/index.html
+
+# Advanced static analysis
+.PHONY: staticcheck
+staticcheck:
+	go install honnef.co/go/tools/cmd/staticcheck@latest
+	staticcheck ./...
+
+# Detect ineffectual assignments
+.PHONY: ineffassign
+ineffassign:
+	go install github.com/gordonklaus/ineffassign@latest
+	ineffassign .
+
+# Spell check comments and strings
+.PHONY: misspell
+misspell:
+	go install github.com/client9/misspell/cmd/misspell@latest
+	misspell -error .
+
+# Find unused code
+.PHONY: deadcode
+deadcode:
+	go install github.com/tsenart/deadcode@latest
+	deadcode ./...
+
+# Ensure go.mod/go.sum are tidy
+.PHONY: mod-tidy-check
+mod-tidy-check:
+	go mod tidy
+	git diff --exit-code go.mod go.sum
+
+# Ensure code is gofmt'd
+.PHONY: fmt-check
+fmt-check:
+	go fmt ./...
+	git diff --exit-code
+
+# Run all quality checks
+.PHONY: quality
+quality: lint vet staticcheck ineffassign misspell deadcode mod-tidy-check fmt-check

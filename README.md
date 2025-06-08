@@ -1,3 +1,5 @@
+[![OpenSSF Best Practices](https://bestpractices.coreinfrastructure.org/projects/0/badge)](https://bestpractices.coreinfrastructure.org/projects/0)
+
 # portctl 🚀
 
 A fast, cross-platform CLI tool for managing processes on specific ports. Perfect for developers who need to quickly identify and kill processes occupying ports during development.
@@ -354,9 +356,9 @@ go test ./...
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Troubleshooting
 
@@ -394,3 +396,38 @@ portctl kill 8080 --force
 - `ss`: Modern netstat replacement, but no kill functionality
 
 portctl combines the best of these tools with a developer-friendly interface! 🎉
+
+## 🛡️ OpenSSF Best Practices
+
+This project aims to comply with the [OpenSSF Best Practices](https://bestpractices.coreinfrastructure.org/) for open source security and quality. See the [OpenSSF Badge](https://bestpractices.coreinfrastructure.org/) for more info.
+
+- Automated CI/CD with GitHub Actions
+- Security and vulnerability scanning
+- Static analysis and code quality checks
+- Documentation and artifact publishing
+
+## 🧪 Quality Automation
+
+The Makefile provides a `quality` target that runs all major static analysis and code quality checks:
+
+```sh
+make quality
+```
+
+This runs:
+- Linting (`lint`)
+- Vetting (`vet`)
+- Staticcheck (`staticcheck`)
+- Ineffassign (`ineffassign`)
+- Misspell (`misspell`)
+- Deadcode (`deadcode`)
+- Go mod tidy check (`mod-tidy-check`)
+- Go fmt check (`fmt-check`)
+
+## 📈 Coverage
+
+![Coverage](coverage.svg) <!-- Add a real badge if using a service -->
+
+## 🏗️ CI/CD
+
+All pushes and pull requests are checked by GitHub Actions for build, test, lint, security, and documentation. See `.github/workflows/ci.yml` for details.

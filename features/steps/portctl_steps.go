@@ -1,15 +1,23 @@
 package steps
 
 import (
-	"github.com/cucumber/godog"
+	"fmt"
 	"os/exec"
 	"strings"
-	"fmt"
+
+	"github.com/cucumber/godog"
 )
 
 var lastOutput string
 
 func iRun(cmd string) error {
+	// Security: reject dangerous shell metacharacters and empty commands
+	if strings.TrimSpace(cmd) == "" {
+		return fmt.Errorf("command must not be empty")
+	}
+	if strings.ContainsAny(cmd, ";&|><`$") {
+		return fmt.Errorf("command contains forbidden shell metacharacters")
+	}
 	parts := strings.Split(cmd, " ")
 	out, err := exec.Command(parts[0], parts[1:]...).CombinedOutput()
 	lastOutput = string(out)

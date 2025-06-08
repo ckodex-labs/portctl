@@ -13,9 +13,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/shirou/gopsutil/v3/process"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/shirou/gopsutil/v3/process"
 )
 
 // Process represents a process listening on a port with enhanced details
@@ -37,12 +37,12 @@ type Process struct {
 
 // SystemStats represents system-wide statistics
 type SystemStats struct {
-	TotalProcesses   int     `json:"total_processes"`
-	ListeningPorts   int     `json:"listening_ports"`
-	CPUUsagePercent  float64 `json:"cpu_usage_percent"`
-	MemoryUsageGB    float64 `json:"memory_usage_gb"`
-	AvailableMemoryGB float64 `json:"available_memory_gb"`
-	TopPortUsers     []Process `json:"top_port_users"`
+	TotalProcesses    int       `json:"total_processes"`
+	ListeningPorts    int       `json:"listening_ports"`
+	CPUUsagePercent   float64   `json:"cpu_usage_percent"`
+	MemoryUsageGB     float64   `json:"memory_usage_gb"`
+	AvailableMemoryGB float64   `json:"available_memory_gb"`
+	TopPortUsers      []Process `json:"top_port_users"`
 }
 
 // ServiceMap maps common ports to service names
@@ -110,7 +110,7 @@ func (pm *ProcessManager) GetAllProcesses() ([]Process, error) {
 
 	// Enhance with additional metrics
 	enhanced := pm.enhanceProcesses(processes)
-	
+
 	// Sort by port number
 	sort.Slice(enhanced, func(i, j int) bool {
 		return enhanced[i].Port < enhanced[j].Port
@@ -167,10 +167,10 @@ func (pm *ProcessManager) GetProcessesByService(serviceType string) ([]Process, 
 
 	var filtered []Process
 	serviceType = strings.ToLower(serviceType)
-	
+
 	for _, proc := range processes {
 		if strings.Contains(strings.ToLower(proc.ServiceType), serviceType) ||
-		   strings.Contains(strings.ToLower(proc.Command), serviceType) {
+			strings.Contains(strings.ToLower(proc.Command), serviceType) {
 			filtered = append(filtered, proc)
 		}
 	}
@@ -204,11 +204,11 @@ func (pm *ProcessManager) FindAvailablePorts(startPort, endPort int, count int) 
 // KillProcesses kills multiple processes by PID with enhanced error reporting
 func (pm *ProcessManager) KillProcesses(pids []int, force bool) map[int]error {
 	results := make(map[int]error)
-	
+
 	for _, pid := range pids {
 		results[pid] = pm.KillProcess(pid, force)
 	}
-	
+
 	return results
 }
 
@@ -217,8 +217,10 @@ func (pm *ProcessManager) KillProcess(pid int, force bool) error {
 	if runtime.GOOS == "windows" {
 		var cmd *exec.Cmd
 		if force {
+			// #nosec G204: Arguments are constructed from validated integer pid, not user input
 			cmd = exec.Command("taskkill", "/F", "/PID", strconv.Itoa(pid))
 		} else {
+			// #nosec G204: Arguments are constructed from validated integer pid, not user input
 			cmd = exec.Command("taskkill", "/PID", strconv.Itoa(pid))
 		}
 		return cmd.Run()
@@ -266,6 +268,9 @@ func (pm *ProcessManager) enhanceProcesses(processes []Process) []Process {
 // enhanceProcess adds detailed metrics to a single process
 func (pm *ProcessManager) enhanceProcess(proc *Process) {
 	// Get detailed process information
+	if proc.PID < 0 || proc.PID > 2147483647 {
+		return
+	}
 	if p, err := process.NewProcess(int32(proc.PID)); err == nil {
 		// Get CPU percent
 		if cpuPercent, err := p.CPUPercent(); err == nil {
@@ -306,7 +311,7 @@ func (pm *ProcessManager) detectServiceType(port int, command string) string {
 
 	// Check command patterns
 	command = strings.ToLower(command)
-	
+
 	switch {
 	case strings.Contains(command, "node"):
 		return "Node.js"
@@ -368,15 +373,18 @@ func (pm *ProcessManager) countUniquePorts(processes []Process) int {
 // getProcessesUnix gets processes on Unix-like systems
 func (pm *ProcessManager) getProcessesUnix(port int) ([]Process, error) {
 	var cmd *exec.Cmd
-	
+
 	// Try lsof first (more reliable)
 	if _, err := exec.LookPath("lsof"); err == nil {
+		// #nosec G204: port is an integer, not user input
 		cmd = exec.Command("lsof", "-i", fmt.Sprintf(":%d", port), "-P", "-n")
 		if port == 0 {
+			// #nosec G204: no user input
 			cmd = exec.Command("lsof", "-i", "-P", "-n")
 		}
 	} else {
 		// Fallback to netstat
+		// #nosec G204: no user input
 		cmd = exec.Command("netstat", "-tulpn")
 	}
 
@@ -626,6 +634,7 @@ func (pm *ProcessManager) parseWindowsOutput(output string, targetPort int) ([]P
 }
 
 func (pm *ProcessManager) getWindowsProcessName(pid int) string {
+	// #nosec G204: pid is an integer, not user input
 	cmd := exec.Command("tasklist", "/FI", fmt.Sprintf("PID eq %d", pid), "/FO", "CSV", "/NH")
 	output, err := cmd.Output()
 	if err != nil {

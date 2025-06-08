@@ -25,6 +25,7 @@ var (
 	watchNotify     bool
 	watchChanges    bool
 	watchContinuous bool
+	watchCount      int
 )
 
 var watchCmd = &cobra.Command{
@@ -105,6 +106,8 @@ func runWatch(cmd *cobra.Command, args []string) {
 	ticker := time.NewTicker(watchInterval)
 	defer ticker.Stop()
 
+	updateCycles := 0
+
 	go func() {
 		for {
 			select {
@@ -140,6 +143,15 @@ func runWatch(cmd *cobra.Command, args []string) {
 							sendNotification(state.changes, targetPort)
 						}
 					}
+				}
+
+				updateCycles++
+				if watchCount > 0 && updateCycles >= watchCount {
+					if !watchContinuous {
+						s.Stop()
+					}
+					color.Green("\n👋 Watch stopped after %d updates.", updateCycles)
+					os.Exit(0)
 				}
 
 			case <-c:
@@ -343,4 +355,6 @@ func init() {
 		"Only display output when changes are detected")
 	watchCmd.Flags().BoolVar(&watchContinuous, "continuous", false,
 		"Continuous output without clearing screen")
+	watchCmd.Flags().IntVar(&watchCount, "count", 0,
+		"Number of update cycles before exiting (default: unlimited)")
 }

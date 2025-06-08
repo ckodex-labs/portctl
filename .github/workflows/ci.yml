@@ -30,7 +30,21 @@ jobs:
           echo "$HOME/.dagger/bin" >> $GITHUB_PATH
           echo "$PWD/bin" >> $GITHUB_PATH
       - name: Lint
-        run: dagger call lint --src=.
+        run: make lint
+      - name: Vet
+        run: make vet
+      - name: Staticcheck
+        run: make staticcheck
+      - name: Ineffassign
+        run: make ineffassign
+      - name: Misspell
+        run: make misspell
+      - name: Deadcode
+        run: make deadcode
+      - name: Go mod tidy check
+        run: make mod-tidy-check
+      - name: Go fmt check
+        run: make fmt-check
       - name: TDD (unit/integration)
         run: dagger call test --src=.
       - name: BDD (Godog)
@@ -58,7 +72,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: dagger call release --src=.
       - name: Generate API docs
-        run: go install golang.org/x/tools/cmd/godoc@latest && godoc -html > docs/api/index.html
+        run: make docs
       - name: Deploy docs to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:

@@ -1,0 +1,122 @@
+<html><head><title>portctl API Documentation</title></head><body><h1>portctl API Documentation</h1><pre>
+package cmd // import "dagger/portctl/cmd"
+
+
+FUNCTIONS
+
+func Execute()
+    Execute adds all child commands to the root command and sets flags
+    appropriately.
+
+
+TYPES
+
+type ScanResult struct {
+	Port     int
+	Host     string
+	Protocol string
+	Status   string
+	Service  string
+	Banner   string
+	Error    error
+}
+
+package process // import "dagger/portctl/pkg"
+
+
+VARIABLES
+
+var ServiceMap = map[int]string{
+	20:    "FTP-DATA",
+	21:    "FTP",
+	22:    "SSH",
+	23:    "Telnet",
+	25:    "SMTP",
+	53:    "DNS",
+	80:    "HTTP",
+	110:   "POP3",
+	143:   "IMAP",
+	443:   "HTTPS",
+	993:   "IMAPS",
+	995:   "POP3S",
+	1433:  "SQL Server",
+	1521:  "Oracle",
+	3000:  "Development Server",
+	3001:  "Development Server",
+	3306:  "MySQL",
+	5000:  "Development Server",
+	5432:  "PostgreSQL",
+	5672:  "RabbitMQ",
+	6379:  "Redis",
+	8000:  "Development Server",
+	8080:  "HTTP Alt",
+	8081:  "HTTP Alt",
+	8888:  "Jupyter",
+	9000:  "Development Server",
+	9090:  "Prometheus",
+	11211: "Memcached",
+	27017: "MongoDB",
+}
+    ServiceMap maps common ports to service names
+
+
+TYPES
+
+type Process struct {
+	PID         int       `json:"pid"`
+	Port        int       `json:"port"`
+	Command     string    `json:"command"`
+	Protocol    string    `json:"protocol"`
+	State       string    `json:"state"`
+	User        string    `json:"user"`
+	StartTime   time.Time `json:"start_time"`
+	CPUPercent  float64   `json:"cpu_percent"`
+	MemoryMB    float32   `json:"memory_mb"`
+	ServiceType string    `json:"service_type"`
+	FullCommand string    `json:"full_command"`
+	LocalAddr   string    `json:"local_addr"`
+	RemoteAddr  string    `json:"remote_addr"`
+}
+    Process represents a process listening on a port with enhanced details
+
+type ProcessManager struct {
+	// Has unexported fields.
+}
+    ProcessManager handles process operations with enhanced features
+
+func NewProcessManager() *ProcessManager
+    NewProcessManager creates a new ProcessManager
+
+func (pm *ProcessManager) FindAvailablePorts(startPort, endPort int, count int) ([]int, error)
+    FindAvailablePorts suggests available ports in common ranges
+
+func (pm *ProcessManager) GetAllProcesses() ([]Process, error)
+    GetAllProcesses returns all processes with open ports with enhanced details
+
+func (pm *ProcessManager) GetProcessesByService(serviceType string) ([]Process, error)
+    GetProcessesByService returns processes filtered by service type
+
+func (pm *ProcessManager) GetProcessesOnPort(port int) ([]Process, error)
+    GetProcessesOnPort returns all processes listening on the specified port
+    with enhanced details
+
+func (pm *ProcessManager) GetSystemStats() (*SystemStats, error)
+    GetSystemStats returns comprehensive system statistics
+
+func (pm *ProcessManager) KillProcess(pid int, force bool) error
+    KillProcess kills a process by PID
+
+func (pm *ProcessManager) KillProcesses(pids []int, force bool) map[int]error
+    KillProcesses kills multiple processes by PID with enhanced error reporting
+
+type SystemStats struct {
+	TotalProcesses    int       `json:"total_processes"`
+	ListeningPorts    int       `json:"listening_ports"`
+	CPUUsagePercent   float64   `json:"cpu_usage_percent"`
+	MemoryUsageGB     float64   `json:"memory_usage_gb"`
+	AvailableMemoryGB float64   `json:"available_memory_gb"`
+	TopPortUsers      []Process `json:"top_port_users"`
+}
+    SystemStats represents system-wide statistics
+
+</pre></body></html>

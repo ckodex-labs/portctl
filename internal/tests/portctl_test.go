@@ -13,7 +13,7 @@ import (
 
 func TestMain(m *testing.M) {
 	// Ensure bin/ exists
-	if err := os.MkdirAll("bin", 0755); err != nil {
+	if err := os.MkdirAll("bin", 0750); err != nil {
 		panic("Failed to create bin directory: " + err.Error())
 	}
 	// Build the CLI binary from the correct path

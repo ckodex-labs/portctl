@@ -119,8 +119,10 @@ func (m *Portctl) Test(ctx context.Context, src *dagger.Directory, pkg *string, 
 		WithMountedCache("/go/pkg/mod", goModCache).
 		WithExec([]string{"ls", "-l", "/src"}).
 		WithExec([]string{"cat", "/src/go.mod"}).
-		WithExec([]string{"pwd"}).
-		WithExec(args)
+		WithExec([]string{"pwd"})
+	// Diagnostic: list all files recursively in /src
+	container = container.WithExec([]string{"ls", "-lR", "/src"})
+	container = container.WithExec(args)
 	if o != "" && c {
 		container = container.WithExec([]string{"cp", "cover.out", o})
 		container = container.WithExec([]string{"sh", "-c", "mkdir -p /artifacts && cp cover.out /artifacts/"})
@@ -151,8 +153,10 @@ func (m *Portctl) Build(ctx context.Context, src *dagger.Directory, outPath *str
 		WithMountedCache("/go/pkg/mod", goModCache).
 		WithExec([]string{"ls", "-l", "/src"}).
 		WithExec([]string{"cat", "/src/go.mod"}).
-		WithExec([]string{"pwd"}).
-		WithExec([]string{"go", "build", "-o", o, "./cmd/portctl/main.go"}).
+		WithExec([]string{"pwd"})
+	// Diagnostic: list all files recursively in /src
+	container = container.WithExec([]string{"ls", "-lR", "/src"})
+	container = container.WithExec([]string{"go", "build", "-o", o, "./cmd/portctl/main.go"}).
 		WithExec([]string{"sh", "-c", "mkdir -p /artifacts && cp " + o + " /artifacts/"})
 	_, err := container.Sync(ctx)
 	if err != nil {
@@ -352,6 +356,8 @@ func (m *Portctl) WellKnown(ctx context.Context, src *dagger.Directory) (string,
 		fmt.Printf("[Dagger] wellKnown failed: mcp-manifest.jsonld missing: %v\n", err)
 		return "", fmt.Errorf("mcp-manifest.jsonld missing: %w", err)
 	}
+	// Install jq before validating JSON
+	container = container.WithExec([]string{"sh", "-c", "apk add --no-cache jq"})
 	out, err := container.WithExec([]string{"sh", "-c", "cat mcp-manifest.jsonld | jq ."}).Stdout(ctx)
 	if err != nil {
 		fmt.Printf("[Dagger] wellKnown failed: mcp-manifest.jsonld is not valid JSON: %v\n", err)
@@ -416,11 +422,13 @@ func (m *Portctl) UploadArtifact(ctx context.Context, src *dagger.File, dstName 
 		return "", fmt.Errorf("src and dst must be specified")
 	}
 	fmt.Printf("[Dagger] Uploading artifact as %s...\n", *dstName)
-	_, err := dag.Container().From("alpine:latest").
-		WithMountedFile("/artifact", src).
-		WithExec([]string{"cp", "/artifact", "/out/" + *dstName}).
-		WithExec([]string{"sh", "-c", "mkdir -p /artifacts && cp /out/" + *dstName + " /artifacts/ || true"}).
-		Sync(ctx)
+	container := dag.Container().From("alpine:latest").
+		WithMountedFile("/artifact", src)
+	// Ensure /out directory exists before copying
+	container = container.WithExec([]string{"mkdir", "-p", "/out"})
+	container = container.WithExec([]string{"cp", "/artifact", "/out/" + *dstName})
+	container = container.WithExec([]string{"sh", "-c", "mkdir -p /artifacts && cp /out/" + *dstName + " /artifacts/ || true"})
+	_, err := container.Sync(ctx)
 	if err != nil {
 		fmt.Printf("[Dagger] UploadArtifact failed: %v\n", err)
 		return "", fmt.Errorf("Artifact upload failed: %w", err)

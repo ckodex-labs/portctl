@@ -41,6 +41,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Quality Checks (OpenSSF)
+        run: make quality
+
       - name: Dagger Lint
         run: dagger call lint --src=.
 

@@ -31,6 +31,9 @@ jobs:
           echo "$HOME/.dagger/bin" >> $GITHUB_PATH
           echo "$PWD/bin" >> $GITHUB_PATH
 
+      - name: Quality Checks (OpenSSF)
+        run: make quality
+
       - name: Run Dagger Lint
         run: dagger call lint --src=.
 
@@ -38,7 +41,7 @@ jobs:
         run: dagger call test --src=.
 
       - name: Build Docs
-        run: dagger call docs --src=.
+        run: make docs
 
       - name: Upload Docs Artifacts
         if: always()

@@ -233,7 +233,7 @@ func runConfigEdit(cmd *cobra.Command, args []string) {
 
 	// Ensure config directory exists
 	configDir := filepath.Dir(configFile)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0750); err != nil {
 		color.Red("Error creating config directory: %v", err)
 		os.Exit(1)
 	}
@@ -311,7 +311,7 @@ func writeConfig() error {
 	configDir := filepath.Dir(configFile)
 
 	// Ensure directory exists
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0750); err != nil {
 		return err
 	}
 
