@@ -156,7 +156,7 @@ func (m *Portctl) Build(ctx context.Context, src *dagger.Directory, outPath *str
 		WithExec([]string{"pwd"})
 	// Diagnostic: list all files recursively in /src
 	container = container.WithExec([]string{"ls", "-lR", "/src"})
-	container = container.WithExec([]string{"go", "build", "-o", o, "./cmd/portctl/main.go"}).
+	container = container.WithExec([]string{"go", "build", "-o", o, "./cmd/portctl"}).
 		WithExec([]string{"sh", "-c", "mkdir -p /artifacts && cp " + o + " /artifacts/"})
 	_, err := container.Sync(ctx)
 	if err != nil {

@@ -50,6 +50,12 @@ jobs:
       - name: Dagger Test
         run: dagger call test --src=.
 
+      - name: Security Scan (Dagger)
+        run: dagger call security-scan --src=. || echo "Security scan completed with findings"
+        
+      - name: Generate SBOM (Dagger)
+        run: dagger call sbom --src=.
+
       - name: Dagger Build
         run: dagger call build --src=.
       - name: Upload Build Artifacts
