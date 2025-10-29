@@ -2,6 +2,7 @@ package snapshots
 
 import (
 	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/bradleyjkemp/cupaloy"
@@ -15,7 +16,19 @@ func TestPortctlHelpSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to run portctl help: %v\nOutput: %s", err, output)
 	}
-	cupaloy.SnapshotT(t, string(output))
+	
+	// Filter out compiler warnings from the output
+	lines := strings.Split(string(output), "\n")
+	var filteredLines []string
+	for _, line := range lines {
+		// Skip lines containing compiler warnings
+		if !strings.Contains(line, "warning:") && !strings.Contains(line, "go-m1cpu") {
+			filteredLines = append(filteredLines, line)
+		}
+	}
+	
+	filteredOutput := strings.Join(filteredLines, "\n")
+	cupaloy.SnapshotT(t, filteredOutput)
 }
 
 

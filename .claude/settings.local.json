@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(go mod:*)",
+      "Bash(go list:*)",
+      "Bash(go build:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(go test:*)",
+      "Bash(rm:*)",
+      "Bash(go run:*)",
+      "Bash(./build/chat-archive analyze:*)",
+      "Multiplexing(get:*)",
+      "Edit",
+      "Bash(./bin/chat-archive:*)",
+      "Bash(dagger call lint:*)",
+      "Bash(dagger call test:*)",
+      "Bash(dagger call:*)",
+      "Bash(dagger call build:*)",
+      "Bash(dagger call:*)"
+    ],
+    "deny": []
+  }
+}

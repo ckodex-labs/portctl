@@ -119,9 +119,26 @@ Navigation:
 func runInteractive(cmd *cobra.Command, args []string) {
 	pm := process.NewProcessManager()
 
+	// Configure list delegate
+	delegate := list.NewDefaultDelegate()
+	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
+		Foreground(lipgloss.Color("#FF7CCB")).
+		BorderLeftForeground(lipgloss.Color("#FF7CCB"))
+	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
+		Foreground(lipgloss.Color("#AD58B4"))
+
+	// Initialize list with empty items
+	items := []list.Item{}
+	tuiList := list.New(items, delegate, 0, 0)
+	tuiList.Title = ""
+	tuiList.SetShowStatusBar(false)
+	tuiList.SetFilteringEnabled(false) // We'll handle filtering ourselves
+	tuiList.SetShowHelp(false)
+
 	m := tuiModel{
 		state:      stateLoading,
 		pm:         pm,
+		list:       tuiList,
 		lastUpdate: time.Now(),
 	}
 
@@ -479,20 +496,4 @@ func killProcess(pm *process.ProcessManager, pid int) tea.Cmd {
 
 func init() {
 	rootCmd.AddCommand(interactiveCmd)
-
-	// Configure list delegate
-	delegate := list.NewDefaultDelegate()
-	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-		Foreground(lipgloss.Color("#FF7CCB")).
-		BorderLeftForeground(lipgloss.Color("#FF7CCB"))
-	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
-		Foreground(lipgloss.Color("#AD58B4"))
-
-	// This will be set properly when the model is initialized
-	items := []list.Item{}
-	tuiList := list.New(items, delegate, 0, 0)
-	tuiList.Title = ""
-	tuiList.SetShowStatusBar(false)
-	tuiList.SetFilteringEnabled(false) // We'll handle filtering ourselves
-	tuiList.SetShowHelp(false)
 }
