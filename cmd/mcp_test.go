@@ -7,7 +7,7 @@ import (
 )
 
 func TestMCP_Help(t *testing.T) {
-	cmd := exec.Command("go", "run", "cmd/portctl/main.go", "mcp", "--help")
+	cmd := exec.Command("go", "run", "../cmd/portctl/main.go", "mcp", "--help")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Failed to run portctl mcp --help: %v\nOutput: %s", err, output)
@@ -24,7 +24,7 @@ func TestMCP_Help(t *testing.T) {
 
 func TestMCP_CommandExists(t *testing.T) {
 	// Verify the mcp command is registered
-	cmd := exec.Command("go", "run", "cmd/portctl/main.go", "--help")
+	cmd := exec.Command("go", "run", "../cmd/portctl/main.go", "--help")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Failed to run portctl --help: %v\nOutput: %s", err, output)
