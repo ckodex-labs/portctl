@@ -27,36 +27,30 @@ This project uses a **modular, MCStack-compliant Dagger pipeline** for full SDLC
 
 - **Full pipeline:**
   ```bash
-  go run .dagger/main.go --step all
+  dagger call build --src=.
   ```
 - **Individual steps:**
   ```bash
-  go run .dagger/main.go --step lint       # Lint code
-  go run .dagger/main.go --step test       # Run tests
-  go run .dagger/main.go --step build      # Build binaries
-  go run .dagger/main.go --step snapshot   # CLI snapshot regression tests
-  go run .dagger/main.go --step release    # GoReleaser: build, sign, SBOM, Docker, Homebrew
-  go run .dagger/main.go --step docs       # Build mdBook docs
-  go run .dagger/main.go --step mcp        # Run MCP server
-  go run .dagger/main.go --step wellknown  # Validate .well-known/ metadata
+  dagger call lint --src=.           # Lint code
+  dagger call test --src=.           # Run tests
+  dagger call build --src=.          # Build binaries
+  dagger call release --src=.        # Release (GoReleaser)
+  dagger call docs --src=.           # Build mdBook docs
+  dagger call generate-manifest --src=. # Generate MCP manifest
+  dagger call well-known --src=.     # Validate metadata
   ```
 
 ### Snapshot Regression Testing
 
-- CLI output is regression-tested with [Cupaloy](https://github.com/bradleyjkemp/cupaloy):
-  ```bash
-  go test ./internal/snapshots
-  ```
-  This ensures anti-fragility and prevents unintentional CLI changes.
+- CLI output is regression-tested with [Cupaloy](https://github.com/bradleyjkemp/cupaloy).
+- Run via Dagger: `dagger call snapshot-test --src=.`
 
 ### Documentation (mdBook)
 
 - Docs are in `docs/` and built with [mdBook](https://rust-lang.github.io/mdBook/):
   ```bash
-  go run .dagger/main.go --step docs
-  mdbook serve docs  # for local preview
+  dagger call docs --src=.
   ```
-  Docs are ready for CI/CD and GitHub Pages publishing.
 
 ### Meta-Architecture & Compliance
 
@@ -84,7 +78,7 @@ The MCP server exposes the real capabilities of the `portctl` CLI via a gRPC API
 
 1. **Start the server:**
    ```sh
-   go run ./cmd/mcp-server
+   go run ./cmd/portctl mcp
    ```
 2. **Call from a gRPC client:**
    - Use Go, Python, or `grpcurl`:
@@ -415,21 +409,13 @@ This project aims to comply with the [OpenSSF Best Practices](https://bestpracti
 
 ## 🧪 Quality Automation
 
-The Makefile provides a `quality` target that runs all major static analysis and code quality checks:
+The project uses Dagger for all quality checks. You can run them directly or via the Makefile:
 
 ```sh
-make quality
+make lint   # Runs dagger call lint
+make test   # Runs dagger call test
+make sec    # Runs dagger call security-scan
 ```
-
-This runs:
-- Linting (`lint`)
-- Vetting (`vet`)
-- Staticcheck (`staticcheck`)
-- Ineffassign (`ineffassign`)
-- Misspell (`misspell`)
-- Deadcode (`deadcode`)
-- Go mod tidy check (`mod-tidy-check`)
-- Go fmt check (`fmt-check`)
 
 ## 📈 Coverage
 

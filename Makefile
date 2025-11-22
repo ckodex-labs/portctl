@@ -1,207 +1,79 @@
 # portctl Makefile
+# Wraps Dagger pipeline for consistent execution
 
 # Variables
 BINARY_NAME=portctl
 VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-LDFLAGS=-ldflags "-s -w -X dagger/portctl/cmd.Version=$(VERSION)"
-BUILD_DIR=build
 
 # Default target
 .PHONY: all
-all: build lint vet test test-coverage sec vuln docs
+all: lint test build
 
-# Build for current platform
-.PHONY: build
-build:
-	go build $(LDFLAGS) -o $(BINARY_NAME) ./cmd/portctl
+# --- Dagger Wrappers ---
 
-# Install dependencies
-.PHONY: deps
-deps:
-	go mod download
-	go mod tidy
+.PHONY: lint
+lint:
+	dagger call lint --src=.
 
-# Run tests (TDD)
 .PHONY: test
 test:
-	go test -v ./...
+	dagger call test --src=.
 
-# Run Ginkgo tests (advanced TDD)
-.PHONY: test-ginkgo
-test-ginkgo:
-	go install github.com/onsi/ginkgo/v2/ginkgo@latest
-	ginkgo -r --randomize-all --fail-on-pending --cover
+.PHONY: build
+build:
+	dagger call build --src=.
 
-# Run BDD tests (Godog)
-.PHONY: test-bdd
-test-bdd:
-	go install github.com/cucumber/godog/cmd/godog@latest
-	godog run ./features
-
-# Run tests with coverage
-.PHONY: test-coverage
-test-coverage:
-	go test -v -coverprofile=coverage.out ./...
-	go tool cover -html=coverage.out -o coverage.html
-
-# Security scan (gosec)
 .PHONY: sec
-gosec:
-	go install github.com/securego/gosec/v2/cmd/gosec@latest
-	gosec ./...
+sec:
+	dagger call security-scan --src=.
 
-# Vulnerability scan (govulncheck)
-.PHONY: vuln
-govulncheck:
-	go install golang.org/x/vuln/cmd/govulncheck@latest
-	govulncheck ./...
+.PHONY: docs
+docs:
+	dagger call docs --src=.
 
-# Build for all platforms
-.PHONY: build-all
-build-all: clean
-	mkdir -p $(BUILD_DIR)
-	# macOS
-	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 ./cmd/portctl
-	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 ./cmd/portctl
-	# Linux
-	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 ./cmd/portctl
-	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 ./cmd/portctl
-	# Windows
-	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./cmd/portctl
-	GOOS=windows GOARCH=arm64 go build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-arm64.exe ./cmd/portctl
+.PHONY: release
+release:
+	dagger call release --src=.
 
-# Install locally
+.PHONY: well-known
+well-known:
+	dagger call well-known --src=.
+
+.PHONY: manifest
+manifest:
+	dagger call generate-manifest --src=.
+
+.PHONY: sbom
+sbom:
+	dagger call sbom --src=.
+
+# --- Legacy/Local Dev Helpers (Optional) ---
+
 .PHONY: install
-install: build
-	sudo mv $(BINARY_NAME) /usr/local/bin/
+install:
+	go install ./cmd/portctl
 
-# Uninstall
-.PHONY: uninstall
-uninstall:
-	sudo rm -f /usr/local/bin/$(BINARY_NAME)
-
-# Clean build artifacts
 .PHONY: clean
 clean:
 	rm -f $(BINARY_NAME)
-	rm -rf $(BUILD_DIR)
-	rm -f coverage.out coverage.html
+	rm -rf build
+	rm -rf artifacts
+	rm -f coverage.out
 
-# Lint code
-.PHONY: lint
-lint:
-	golangci-lint run
-
-# Format code
-.PHONY: fmt
-fmt:
-	go fmt ./...
-
-# Vet code
-.PHONY: vet
-vet:
-	go vet ./...
-
-# Run all quality checks
-.PHONY: check
-check: fmt vet lint test
-
-# Development setup
-.PHONY: dev-setup
-dev-setup:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-
-# Create release archives
-.PHONY: release
-release: build-all
-	cd $(BUILD_DIR) && \
-	tar -czf $(BINARY_NAME)-darwin-amd64.tar.gz $(BINARY_NAME)-darwin-amd64 && \
-	tar -czf $(BINARY_NAME)-darwin-arm64.tar.gz $(BINARY_NAME)-darwin-arm64 && \
-	tar -czf $(BINARY_NAME)-linux-amd64.tar.gz $(BINARY_NAME)-linux-amd64 && \
-	tar -czf $(BINARY_NAME)-linux-arm64.tar.gz $(BINARY_NAME)-linux-arm64 && \
-	zip $(BINARY_NAME)-windows-amd64.zip $(BINARY_NAME)-windows-amd64.exe && \
-	zip $(BINARY_NAME)-windows-arm64.zip $(BINARY_NAME)-windows-arm64.exe
-
-# Quick demo
-.PHONY: demo
-demo: build
-	@echo "🚀 portctl Demo"
-	@echo "==============="
-	@echo "1. Listing all processes with open ports:"
-	@./$(BINARY_NAME) list | head -10
-	@echo "\n2. Getting help:"
-	@./$(BINARY_NAME) --help
-
-# Help
 .PHONY: help
 help:
-	@echo "Available targets:"
-	@echo "  build         - Build for current platform"
-	@echo "  build-all     - Build for all platforms"
-	@echo "  test          - Run TDD (Go test)"
-	@echo "  test-ginkgo   - Run advanced TDD (Ginkgo)"
-	@echo "  test-bdd      - Run BDD (Godog)"
-	@echo "  test-coverage - Run tests with coverage"
-	@echo "  sec           - Run gosec security scan"
-	@echo "  vuln          - Run govulncheck vulnerability scan"
-	@echo "  docs          - Generate API docs (godoc)"
-	@echo "  install       - Install locally to /usr/local/bin"
-	@echo "  uninstall     - Remove from /usr/local/bin"
-	@echo "  clean         - Clean build artifacts"
+	@echo "Available targets (via Dagger):"
 	@echo "  lint          - Run linter"
-	@echo "  fmt           - Format code"
-	@echo "  vet           - Vet code"
-	@echo "  check         - Run all quality checks"
-	@echo "  dev-setup     - Install development tools"
-	@echo "  release       - Create release archives"
-	@echo "  demo          - Quick demonstration"
-	@echo "  help          - Show this help"
+	@echo "  test          - Run tests"
+	@echo "  build         - Build binary"
+	@echo "  sec           - Run security scan"
+	@echo "  docs          - Generate documentation"
+	@echo "  release       - Run release pipeline"
+	@echo "  well-known    - Validate .well-known metadata"
+	@echo "  manifest      - Generate MCP manifest"
+	@echo "  sbom          - Generate SBOM"
+	@echo ""
+	@echo "Local helpers:"
+	@echo "  install       - Go install locally"
+	@echo "  clean         - Clean artifacts"
 
-# Generate API docs
-.PHONY: docs
-docs:
-	@mkdir -p docs/api
-	@echo '<html><head><title>portctl API Documentation</title></head><body><h1>portctl API Documentation</h1><pre>' > docs/api/index.html
-	@go doc -all dagger/portctl/cmd >> docs/api/index.html
-	@go doc -all dagger/portctl/pkg >> docs/api/index.html
-	@echo '</pre></body></html>' >> docs/api/index.html
-
-# Advanced static analysis
-.PHONY: staticcheck
-staticcheck:
-	go install honnef.co/go/tools/cmd/staticcheck@latest
-	staticcheck ./...
-
-# Detect ineffectual assignments
-.PHONY: ineffassign
-ineffassign:
-	go install github.com/gordonklaus/ineffassign@latest
-	ineffassign ./...
-
-# Spell check comments and strings
-.PHONY: misspell
-misspell:
-	go install github.com/client9/misspell/cmd/misspell@latest
-	misspell -error .
-
-# Find unused code
-.PHONY: deadcode
-deadcode:
-	go install github.com/tsenart/deadcode@latest
-	deadcode .
-
-# Ensure go.mod/go.sum are tidy
-.PHONY: mod-tidy-check
-mod-tidy-check:
-	go mod tidy
-	git diff --exit-code go.mod go.sum
-
-# Ensure code is gofmt'd
-.PHONY: fmt-check
-fmt-check:
-	go fmt ./...
-	git diff --exit-code
-
-# Run all quality checks
-.PHONY: quality
-quality: lint vet staticcheck ineffassign misspell deadcode mod-tidy-check fmt-check
