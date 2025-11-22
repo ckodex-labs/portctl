@@ -33,7 +33,7 @@ docs:
 
 .PHONY: release
 release:
-	dagger call release --src=.
+	dagger call release --src=. --github-token=env:GITHUB_TOKEN --tap-github-token=env:TAP_GITHUB_TOKEN
 
 .PHONY: well-known
 well-known:

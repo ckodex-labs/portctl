@@ -1,8 +1,9 @@
 {
   "name": "portctl",
-  "engineVersion": "v0.18.9",
+  "engineVersion": "v0.19.6",
   "sdk": {
     "source": "go"
   },
-  "source": ".dagger"
+  "source": ".dagger",
+  "disableDefaultFunctionCaching": true
 }

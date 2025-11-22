@@ -40,7 +40,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
-        run: dagger call release --src=.
+        run: dagger call release --src=. --github-token=env:GITHUB_TOKEN --tap-github-token=env:TAP_GITHUB_TOKEN
       
       - name: Upload Artifacts
         if: always()

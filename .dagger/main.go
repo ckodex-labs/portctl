@@ -283,7 +283,7 @@ cat .well-known/mcp-manifest.jsonld
 // +dagger:call=release
 // --- Release Step ---
 // Release runs GoReleaser to build and package the project, exporting artifacts.
-func (m *Portctl) Release(ctx context.Context, src *dagger.Directory) (string, error) {
+func (m *Portctl) Release(ctx context.Context, src *dagger.Directory, githubToken *dagger.Secret, tapGithubToken *dagger.Secret) (string, error) {
 	fmt.Println("[Dagger] Starting release step...")
 	goModCache := m.goModCache()
 
@@ -297,8 +297,8 @@ func (m *Portctl) Release(ctx context.Context, src *dagger.Directory) (string, e
 		WithMountedDirectory("/src", src).
 		WithWorkdir("/src").
 		WithMountedCache("/go/pkg/mod", goModCache).
-		WithEnvVariable("GITHUB_TOKEN", os.Getenv("GITHUB_TOKEN")).
-		WithEnvVariable("TAP_GITHUB_TOKEN", os.Getenv("TAP_GITHUB_TOKEN")).
+		WithSecretVariable("GITHUB_TOKEN", githubToken).
+		WithSecretVariable("TAP_GITHUB_TOKEN", tapGithubToken).
 		WithEnvVariable("COSIGN_EXPERIMENTAL", "1").
 		WithExec([]string{"goreleaser", "release", "--clean"}).
 		WithExec([]string{"sh", "-c", "mkdir -p /src/artifacts/.well-known"}).
