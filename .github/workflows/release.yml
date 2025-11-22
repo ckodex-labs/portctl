@@ -25,7 +25,7 @@ jobs:
       - name: Install Dagger CLI
         run: |
           curl -L https://dl.dagger.io/dagger/install.sh | sh
-          echo "$HOME/.dagger/bin" >> $GITHUB_PATH
+          sudo mv bin/dagger /usr/local/bin/
       
       # All validation and build through Dagger
       - name: Generate MCP Manifest
