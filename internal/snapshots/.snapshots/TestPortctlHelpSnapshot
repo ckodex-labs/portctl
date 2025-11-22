@@ -19,6 +19,7 @@ Available Commands:
   interactive Launch interactive TUI mode
   kill        Kill processes running on specific ports with advanced options
   list        List processes running on specific ports with advanced filtering
+  mcp         Start the Model Context Protocol (MCP) server
   quick       Quick actions for common developer tasks
   scan        Scan ports on local or remote hosts
   stats       Show comprehensive system and port statistics

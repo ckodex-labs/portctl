@@ -95,9 +95,7 @@ func runScan(cmd *cobra.Command, args []string) {
 
 	// Start spinner
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-	if err := s.Color("cyan"); err != nil {
-		// Ignore spinner color error, it's not critical
-	}
+	_ = s.Color("cyan") // Ignore color error, not critical
 	s.Suffix = fmt.Sprintf(" Scanning %d ports ", len(ports))
 	s.Start()
 
