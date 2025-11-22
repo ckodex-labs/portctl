@@ -1,9 +1,9 @@
 package tests
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -12,22 +12,15 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	// Ensure bin/ exists
-	if err := os.MkdirAll("bin", 0750); err != nil {
-		panic("Failed to create bin directory: " + err.Error())
-	}
-	// Build the CLI binary from the correct path
-	cmd := exec.Command("go", "build", "-o", "bin/portctl", "../../cmd/portctl/main.go")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		panic("Failed to build portctl CLI: " + err.Error())
+	// Build the portctl CLI before running tests
+	buildCmd := exec.Command("go", "build", "-o", "/tmp/portctl", "../../cmd/portctl/main.go")
+	output, err := buildCmd.CombinedOutput()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to build portctl CLI: %v\nOutput: %s", err, output))
 	}
 
-	// Prepend bin/ to $PATH
-	binDir, _ := filepath.Abs("bin")
-	if err := os.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH")); err != nil {
-		// TODO: handle error appropriately (log, return, etc.)
+	// Prepend /tmp to $PATH so the test can find the built binary
+	if err := os.Setenv("PATH", "/tmp"+string(os.PathListSeparator)+os.Getenv("PATH")); err != nil {
 		panic("failed to set PATH: " + err.Error())
 	}
 
