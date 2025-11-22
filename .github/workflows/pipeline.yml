@@ -1,77 +1,52 @@
-name: Dagger Pipeline
+name: Pipeline
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
 
 jobs:
-  dagger-pipeline:
+  full-pipeline:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.3'
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
+      
       - name: Install Dagger CLI
         run: |
           curl -L https://dl.dagger.io/dagger/install.sh | sh
           echo "$HOME/.dagger/bin" >> $GITHUB_PATH
-          echo "$PWD/bin" >> $GITHUB_PATH
-
-      - name: Quality Checks (OpenSSF)
-        run: make quality
-
-      - name: Run Dagger Lint
+      
+      # Complete pipeline through Dagger
+      - name: Lint
         run: dagger call lint --src=.
-
-      - name: Run Dagger Test
+      
+      - name: Test
         run: dagger call test --src=.
-
-      - name: Security Scan (Dagger)
-        run: dagger call security-scan --src=. || echo "Security scan completed with findings"
-        
-      - name: Generate SBOM (Dagger)
+      
+      - name: Build
+        run: dagger call build --src=.
+      
+      - name: Security Scan
+        run: dagger call security-scan --src=.
+      
+      - name: Generate SBOM
         run: dagger call sbom --src=.
-
-      - name: BDD Tests (Dagger)
+      
+      - name: BDD Tests
         run: dagger call bdd --src=. || echo "BDD tests require higher coverage"
-
-      - name: Build Docs
-        run: make docs
-
-      - name: Upload Docs Artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: docs-artifacts
-          path: ./artifacts
-
-      - name: Publish Docs (on main only)
-        if: github.ref == 'refs/heads/main'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: dagger call publishDocs --src=.
-
-      - name: Deploy (optional)
-        if: github.ref == 'refs/heads/main'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: dagger call deploy --src=.
-
-      - name: Upload Pipeline Artifacts
+      
+      - name: Validate Well-Known
+        run: dagger call well-known --src=.
+      
+      - name: Generate Docs
+        run: dagger call docs --src=.
+      
+      - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:

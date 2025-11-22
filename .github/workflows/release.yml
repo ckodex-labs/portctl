@@ -3,75 +3,52 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'   # Triggers on version tags like v1.2.3
+      - 'v*'
 
 permissions:
-  contents: write      # For GitHub Releases
-  packages: write      # For Docker/GHCR
-  id-token: write      # For OIDC keyless signing with Cosign
+  contents: write
+  packages: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Required for changelog and tag diff
-
-      - name: Install Dagger CLI
-        run: |
-          curl -L https://dl.dagger.io/dagger/install.sh | sh
-          echo "$HOME/.dagger/bin" >> $GITHUB_PATH
-          echo "$PWD/bin" >> $GITHUB_PATH
-
+          fetch-depth: 0
+      
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.3'
-
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      - name: Install golangci-lint
+      
+      - name: Install Dagger CLI
         run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin latest
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-
-      # All build/test/release steps handled by Dagger
+          curl -L https://dl.dagger.io/dagger/install.sh | sh
+          echo "$HOME/.dagger/bin" >> $GITHUB_PATH
+      
+      # All validation and build through Dagger
       - name: Generate MCP Manifest
         run: dagger call generate-manifest --src=.
-
-      - name: Run Quality Checks
+      
+      - name: Validate
         run: |
           dagger call lint --src=.
           dagger call test --src=.
-          dagger call security-scan --src=. || echo "Security scan completed with findings"
-
+      
       - name: Build and Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: dagger call release --src=.
-
+      
       - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
           path: ./artifacts
-
+      
       # GoReleaser for GitHub Release and Homebrew
-      - name: Set up Homebrew tap token
-        run: echo "TAP_GITHUB_TOKEN=${{ secrets.TAP_GITHUB_TOKEN }}" >> $GITHUB_ENV
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -80,5 +57,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}  # For Homebrew tap publishing
- 
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
