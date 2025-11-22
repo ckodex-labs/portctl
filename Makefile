@@ -176,7 +176,7 @@ staticcheck:
 .PHONY: ineffassign
 ineffassign:
 	go install github.com/gordonklaus/ineffassign@latest
-	ineffassign .
+	ineffassign ./...
 
 # Spell check comments and strings
 .PHONY: misspell
