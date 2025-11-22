@@ -188,7 +188,7 @@ misspell:
 .PHONY: deadcode
 deadcode:
 	go install github.com/tsenart/deadcode@latest
-	deadcode ./...
+	deadcode .
 
 # Ensure go.mod/go.sum are tidy
 .PHONY: mod-tidy-check

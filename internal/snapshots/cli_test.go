@@ -16,7 +16,7 @@ func TestPortctlHelpSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to run portctl help: %v\nOutput: %s", err, output)
 	}
-	
+
 	// Filter out compiler warnings from the output
 	lines := strings.Split(string(output), "\n")
 	var filteredLines []string
@@ -26,10 +26,9 @@ func TestPortctlHelpSnapshot(t *testing.T) {
 			filteredLines = append(filteredLines, line)
 		}
 	}
-	
+
 	filteredOutput := strings.Join(filteredLines, "\n")
 	cupaloy.SnapshotT(t, filteredOutput)
 }
-
 
 // Add more tests for other CLI commands as needed
