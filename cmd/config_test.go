@@ -7,7 +7,7 @@ import (
 )
 
 func TestConfigSet_Help(t *testing.T) {
-	cmd := exec.Command("go", "run", "cmd/portctl/main.go", "config", "set", "--help")
+	cmd := exec.Command("go", "run", "../cmd/portctl/main.go", "config", "set", "--help")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("Failed to run portctl config set --help: %v\nOutput: %s", err, output)
