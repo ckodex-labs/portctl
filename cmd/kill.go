@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -62,10 +63,11 @@ Examples:
 
 func runKill(cmd *cobra.Command, args []string) {
 	pm := process.NewProcessManager()
+	ctx := cmd.Context()
 
 	// Handle single PID kill
 	if killPID != 0 {
-		killProcessByPID(pm, killPID)
+		killProcessByPID(ctx, pm, killPID)
 		return
 	}
 
@@ -75,7 +77,7 @@ func runKill(cmd *cobra.Command, args []string) {
 
 	// Handle filtering options
 	if killService != "" || killUser != "" || killOlder != "" {
-		targetProcesses, err = getFilteredProcesses(pm)
+		targetProcesses, err = getFilteredProcesses(ctx, pm)
 		if err != nil {
 			color.Red("Error filtering processes: %v", err)
 			os.Exit(1)
@@ -84,7 +86,7 @@ func runKill(cmd *cobra.Command, args []string) {
 
 	// Handle port range
 	if killRange != "" {
-		rangeProcesses, err := getProcessesInRange(pm, killRange)
+		rangeProcesses, err := getProcessesInRange(ctx, pm, killRange)
 		if err != nil {
 			color.Red("Error parsing port range: %v", err)
 			os.Exit(1)
@@ -101,7 +103,7 @@ func runKill(cmd *cobra.Command, args []string) {
 				os.Exit(1)
 			}
 
-			processes, err := pm.GetProcessesOnPort(port)
+			processes, err := pm.GetProcessesOnPort(ctx, port)
 			if err != nil {
 				color.Red("Error getting processes on port %d: %v", port, err)
 				continue
@@ -119,10 +121,10 @@ func runKill(cmd *cobra.Command, args []string) {
 	targetProcesses = removeDuplicateProcesses(targetProcesses)
 
 	// Kill multiple processes
-	killMultipleProcesses(pm, targetProcesses)
+	killMultipleProcesses(ctx, pm, targetProcesses)
 }
 
-func killProcessByPID(pm *process.ProcessManager, pid int) {
+func killProcessByPID(ctx context.Context, pm *process.ProcessManager, pid int) {
 	if !killYes {
 		if !confirmKill(fmt.Sprintf("process with PID %d", pid)) {
 			color.Yellow("Operation cancelled")
@@ -131,7 +133,7 @@ func killProcessByPID(pm *process.ProcessManager, pid int) {
 	}
 
 	color.Yellow("Killing process %d...", pid)
-	err := pm.KillProcess(pid, killForce)
+	err := pm.KillProcess(ctx, pid, killForce)
 	if err != nil {
 		color.Red("Failed to kill process %d: %v", pid, err)
 		os.Exit(1)
@@ -160,8 +162,8 @@ func confirmKill(target string) bool {
 	return response == "y" || response == "yes"
 }
 
-func getFilteredProcesses(pm *process.ProcessManager) ([]process.Process, error) {
-	allProcesses, err := pm.GetAllProcesses()
+func getFilteredProcesses(ctx context.Context, pm *process.ProcessManager) ([]process.Process, error) {
+	allProcesses, err := pm.GetAllProcesses(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +207,7 @@ func getFilteredProcesses(pm *process.ProcessManager) ([]process.Process, error)
 	return filtered, nil
 }
 
-func getProcessesInRange(pm *process.ProcessManager, rangeStr string) ([]process.Process, error) {
+func getProcessesInRange(ctx context.Context, pm *process.ProcessManager, rangeStr string) ([]process.Process, error) {
 	parts := strings.Split(rangeStr, "-")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid range format, use 'start-end' (e.g., '3000-3010')")
@@ -227,7 +229,7 @@ func getProcessesInRange(pm *process.ProcessManager, rangeStr string) ([]process
 
 	var processes []process.Process
 	for port := start; port <= end; port++ {
-		procs, err := pm.GetProcessesOnPort(port)
+		procs, err := pm.GetProcessesOnPort(ctx, port)
 		if err != nil {
 			continue // Skip errors for individual ports
 		}
@@ -251,7 +253,7 @@ func removeDuplicateProcesses(processes []process.Process) []process.Process {
 	return unique
 }
 
-func killMultipleProcesses(pm *process.ProcessManager, processes []process.Process) {
+func killMultipleProcesses(ctx context.Context, pm *process.ProcessManager, processes []process.Process) {
 	if len(processes) == 0 {
 		color.Yellow("No processes to kill")
 		return
@@ -289,7 +291,7 @@ func killMultipleProcesses(pm *process.ProcessManager, processes []process.Proce
 		pids[i] = proc.PID
 	}
 
-	results := pm.KillProcesses(pids, killForce)
+	results := pm.KillProcesses(ctx, pids, killForce)
 
 	// Report results
 	var succeeded, failed []int

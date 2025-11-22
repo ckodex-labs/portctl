@@ -2,9 +2,38 @@
 
 Welcome to the documentation for **portctl**!
 
-`portctl` is a secure, cross-platform CLI for managing processes on ports. It is designed for:
-- Security and compliance (SLSA 4, SBOM, signed releases)
-- Developer experience and usability
-- Robust automation and auditability
+`portctl` is a modern, high-performance CLI tool designed to help developers manage network ports and processes with ease. It eliminates the need to remember complex `lsof` or `netstat` commands and provides a safe, user-friendly interface for identifying and killing processes.
 
-For architecture details, see the [arc42 documentation](arc42/01_introduction.md).
+## Key Features
+
+- **🔍 Smart Process Discovery**: Instantly find what's running on any port.
+- **⚡ Fast & Safe Killing**: Terminate processes by port or PID with safety checks.
+- **🖥️ Interactive TUI**: A beautiful terminal UI for browsing and managing processes.
+- **👀 Real-time Monitoring**: Watch ports for changes and get desktop notifications.
+- **🛡️ Developer Focused**: "Quick" commands to kill dev servers, find free ports, and clean up zombies.
+- **📊 System Stats**: Insight into system resource usage and port distribution.
+- **🔒 Secure**: Built with security in mind (SLSA 4 compliance, signed releases).
+
+## Installation
+
+### Homebrew (macOS/Linux)
+
+```bash
+brew install mchorfa/tap/portctl
+```
+
+### Go Install
+
+```bash
+go install github.com/mchorfa/portctl@latest
+```
+
+### Manual Download
+
+Download the latest binary from the [Releases Page](https://github.com/mchorfa/portctl/releases).
+
+## Getting Started
+
+Check out the [Usage Guide](usage.md) to learn how to use the CLI commands.
+
+For architectural details and design decisions, see the [Architecture (arc42)](arc42/01_introduction.md) section.

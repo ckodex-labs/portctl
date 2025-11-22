@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -44,6 +45,7 @@ type tuiModel struct {
 	filterQuery   string
 	showHelp      bool
 	lastUpdate    time.Time
+	ctx           context.Context
 }
 
 type processItem struct {
@@ -118,6 +120,7 @@ Navigation:
 
 func runInteractive(cmd *cobra.Command, args []string) {
 	pm := process.NewProcessManager()
+	ctx := cmd.Context()
 
 	// Configure list delegate
 	delegate := list.NewDefaultDelegate()
@@ -140,6 +143,7 @@ func runInteractive(cmd *cobra.Command, args []string) {
 		pm:         pm,
 		list:       tuiList,
 		lastUpdate: time.Now(),
+		ctx:        ctx,
 	}
 
 	// Initialize spinner
@@ -159,7 +163,7 @@ func runInteractive(cmd *cobra.Command, args []string) {
 }
 
 func (m tuiModel) Init() tea.Cmd {
-	return tea.Batch(m.spinner.Tick, loadProcesses(m.pm))
+	return tea.Batch(m.spinner.Tick, loadProcesses(m.ctx, m.pm))
 }
 
 func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -201,10 +205,10 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case "s":
 				m.state = stateStats
-				cmds = append(cmds, loadStats(m.pm))
+				cmds = append(cmds, loadStats(m.ctx, m.pm))
 			case "r":
 				m.state = stateLoading
-				cmds = append(cmds, loadProcesses(m.pm))
+				cmds = append(cmds, loadProcesses(m.ctx, m.pm))
 			case "h", "?":
 				m.showHelp = !m.showHelp
 			}
@@ -233,9 +237,9 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case "y":
 				if m.state == stateKillConfirm {
-					cmds = append(cmds, killProcess(m.pm, m.selectedProc.PID))
+					cmds = append(cmds, killProcess(m.ctx, m.pm, m.selectedProc.PID))
 					m.state = stateLoading
-					cmds = append(cmds, loadProcesses(m.pm))
+					cmds = append(cmds, loadProcesses(m.ctx, m.pm))
 				}
 			case "n":
 				if m.state == stateKillConfirm {
@@ -259,7 +263,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case processKilledMsg:
 		// Process killed, reload list
-		cmds = append(cmds, loadProcesses(m.pm))
+		cmds = append(cmds, loadProcesses(m.ctx, m.pm))
 
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -473,23 +477,23 @@ type processKilledMsg struct {
 }
 
 // Commands
-func loadProcesses(pm *process.ProcessManager) tea.Cmd {
+func loadProcesses(ctx context.Context, pm *process.ProcessManager) tea.Cmd {
 	return func() tea.Msg {
-		processes, err := pm.GetAllProcesses()
+		processes, err := pm.GetAllProcesses(ctx)
 		return processesLoadedMsg{processes: processes, err: err}
 	}
 }
 
-func loadStats(pm *process.ProcessManager) tea.Cmd {
+func loadStats(ctx context.Context, pm *process.ProcessManager) tea.Cmd {
 	return func() tea.Msg {
-		stats, err := pm.GetSystemStats()
+		stats, err := pm.GetSystemStats(ctx)
 		return statsLoadedMsg{stats: stats, err: err}
 	}
 }
 
-func killProcess(pm *process.ProcessManager, pid int) tea.Cmd {
+func killProcess(ctx context.Context, pm *process.ProcessManager, pid int) tea.Cmd {
 	return func() tea.Msg {
-		err := pm.KillProcess(pid, false)
+		err := pm.KillProcess(ctx, pid, false)
 		return processKilledMsg{pid: pid, err: err}
 	}
 }

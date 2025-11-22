@@ -1,1 +1,89 @@
-{ "@context": "https://www.w3.org/ns/activitystreams", "type": "Manifest", "name": "Portctl MCP Manifest", "description": "Minimal MCP manifest for Dagger pipeline test." }
+{
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "type": "Service",
+    "name": "portctl",
+    "version": "1.0.0",
+    "description": "Secure, cross-platform CLI for managing processes on ports",
+    "homepage": "https://github.com/mchorfa/portctl",
+    "documentation": "https://mchorfa.github.io/portctl",
+    "protocol": "mcp",
+    "capabilities": {
+        "tools": true,
+        "resources": true,
+        "logging": true
+    },
+    "tools": [
+        {
+            "name": "list_processes",
+            "description": "List running processes, optionally filtered by port or service",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "port": {
+                        "type": "number",
+                        "description": "Specific port to check"
+                    },
+                    "service": {
+                        "type": "string",
+                        "description": "Filter by service name (e.g., 'node', 'python')"
+                    }
+                }
+            }
+        },
+        {
+            "name": "kill_process",
+            "description": "Kill a process by PID or Port",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "pid": {
+                        "type": "number",
+                        "description": "Process ID to kill"
+                    },
+                    "port": {
+                        "type": "number",
+                        "description": "Port number to kill processes on"
+                    },
+                    "force": {
+                        "type": "boolean",
+                        "description": "Force kill (SIGKILL)"
+                    }
+                }
+            }
+        },
+        {
+            "name": "scan_ports",
+            "description": "Scan for open ports on a host",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "host": {
+                        "type": "string",
+                        "description": "Host to scan (default: localhost)"
+                    },
+                    "start_port": {
+                        "type": "number",
+                        "description": "Start of port range"
+                    },
+                    "end_port": {
+                        "type": "number",
+                        "description": "End of port range"
+                    }
+                }
+            }
+        },
+        {
+            "name": "get_system_stats",
+            "description": "Get system resource usage and statistics",
+            "inputSchema": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    ],
+    "integration": {
+        "command": "portctl mcp",
+        "transport": "stdio",
+        "format": "json-rpc"
+    }
+}

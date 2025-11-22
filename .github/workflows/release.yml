@@ -41,59 +41,29 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Quality Checks (OpenSSF)
-        run: make quality
+      # All build/test/release steps handled by Dagger
+      - name: Generate MCP Manifest
+        run: dagger call generate-manifest --src=.
 
-      - name: Dagger Lint
-        run: dagger call lint --src=.
+      - name: Run Quality Checks
+        run: |
+          dagger call lint --src=.
+          dagger call test --src=.
+          dagger call security-scan --src=. || echo "Security scan completed with findings"
 
-      - name: Dagger Test
-        run: dagger call test --src=.
-
-      - name: Security Scan (Dagger)
-        run: dagger call security-scan --src=. || echo "Security scan completed with findings"
-        
-      - name: Generate SBOM (Dagger)
-        run: dagger call sbom --src=.
-
-      - name: Dagger Build
-        run: dagger call build --src=.
-      - name: Upload Build Artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts
-          path: ./artifacts
-
-      - name: Dagger Release
+      - name: Build and Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: dagger call release --src=.
-      - name: Upload Release Artifacts
+
+      - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
           path: ./artifacts
 
-      # Optional: Install Cosign for verification/debugging
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.7.0
-
-      # Optional: Install Syft for SBOM generation
-      - name: Install Syft
-        uses: anchore/sbom-action/download-syft@v0.17.9
-
-      # Docker buildx for multi-arch Docker images
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Homebrew tap: Use a Personal Access Token with workflow scope for cross-repo push
+      # GoReleaser for GitHub Release and Homebrew
       - name: Set up Homebrew tap token
         run: echo "TAP_GITHUB_TOKEN=${{ secrets.TAP_GITHUB_TOKEN }}" >> $GITHUB_ENV
 
@@ -106,35 +76,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}  # For Homebrew tap publishing
-
-      # Automated signature verification for all release artifacts
-      - name: Verify signatures for all release artifacts
-        run: |
-          for file in dist/*.tar.gz; do
-            sig="${file}.sig"
-            if [ -f "$sig" ]; then
-              echo "Verifying $file ..."
-              cosign verify-blob \
-                --certificate-identity "https://github.com/${{ github.repository_owner }}/${{ github.repository }}" \
-                --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-                "$file" --signature "$sig"
-            fi
-          done
-
-      # (Optional) Verify Docker image signatures (if using cosign sign for images)
-      # - name: Verify Docker image signatures
-      #   run: |
-      #     cosign verify ghcr.io/${{ github.repository_owner }}/portctl:$(git describe --tags) \
-      #       --certificate-identity "https://github.com/${{ github.repository_owner }}/${{ github.repository }}" \
-      #       --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
-
-      - name: Dagger Deploy (optional)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: dagger call deploy --src=.
-      - name: Upload Deploy Artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: deploy-artifacts
-          path: ./artifacts 
+ 

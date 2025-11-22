@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -38,6 +39,7 @@ Examples:
 
 func runAvailable(cmd *cobra.Command, args []string) {
 	pm := process.NewProcessManager()
+	ctx := cmd.Context()
 
 	// Set defaults if not specified
 	if availableStart == 0 {
@@ -58,7 +60,7 @@ func runAvailable(cmd *cobra.Command, args []string) {
 
 	fmt.Printf("\033[96m🔍 Searching for available ports in range %d-%d...\033[0m\n", availableStart, availableEnd)
 
-	available, err := pm.FindAvailablePorts(availableStart, availableEnd, availableCount)
+	available, err := pm.FindAvailablePorts(ctx, availableStart, availableEnd, availableCount)
 	if err != nil {
 		fmt.Printf("\033[91mError finding available ports: %v\033[0m\n", err)
 		os.Exit(1)
@@ -123,10 +125,7 @@ func getSuggestedUse(port int) string {
 }
 
 func getCommonService(port int) string {
-	if service, exists := process.ServiceMap[port]; exists {
-		return service
-	}
-	return "-"
+	return process.GetServiceName(port)
 }
 
 var statsCmd = &cobra.Command{
@@ -152,10 +151,11 @@ var statsJSON bool
 
 func runStats(cmd *cobra.Command, args []string) {
 	pm := process.NewProcessManager()
+	ctx := cmd.Context()
 
 	fmt.Printf("\033[96m📊 Gathering system statistics...\033[0m\n")
 
-	stats, err := pm.GetSystemStats()
+	stats, err := pm.GetSystemStats(ctx)
 	if err != nil {
 		fmt.Printf("\033[91mError getting system statistics: %v\033[0m\n", err)
 		os.Exit(1)
@@ -254,7 +254,7 @@ func runStats(cmd *cobra.Command, args []string) {
 
 	// Development ports status
 	fmt.Printf("\033[96m🛠️  Common Development Ports:\033[0m\n")
-	checkCommonPorts(pm)
+	checkCommonPorts(ctx, pm)
 }
 
 func getProgressBar(percent float64) string {
@@ -282,7 +282,7 @@ func getProgressBar(percent float64) string {
 	return bar.String()
 }
 
-func checkCommonPorts(pm *process.ProcessManager) {
+func checkCommonPorts(ctx context.Context, pm *process.ProcessManager) {
 	commonPorts := []int{3000, 3001, 4000, 5000, 8000, 8080, 8081, 9000}
 
 	t := tablepretty.NewWriter()
@@ -298,7 +298,7 @@ func checkCommonPorts(pm *process.ProcessManager) {
 	})
 
 	for _, port := range commonPorts {
-		processes, _ := pm.GetProcessesOnPort(port)
+		processes, _ := pm.GetProcessesOnPort(ctx, port)
 		status := ""
 		if len(processes) > 0 {
 			proc := processes[0]

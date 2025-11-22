@@ -7,8 +7,11 @@ A fast, cross-platform CLI tool for managing processes on specific ports. Perfec
 ## Features
 
 - 🔍 **List processes** on specific ports or all ports
-- ⚡ **Kill processes** by port or PID
-- 🖥️ **Cross-platform** support (macOS, Linux, Windows)
+- ⚡ **Kill processes** by port, PID, service, or user
+- 🖥️ **Interactive TUI** for visual management
+- 👀 **Watch mode** for real-time monitoring with notifications
+- 📡 **Port scanning** for local and remote hosts
+- 🛠️ **Developer shortcuts** (quick kill, find free ports)
 - 🎨 **Beautiful output** with colored tables
 - 🛡️ **Safety features** with confirmation prompts
 - 📊 **JSON output** for scripting and automation
@@ -120,6 +123,10 @@ go install github.com/mchorfa/portctl@latest
 
 ### Option 3: Download binary
 Download the latest binary from the [releases page](https://github.com/mchorfa/portctl/releases).
+
+## 📚 Documentation
+
+Full documentation is available at [https://mchorfa.github.io/portctl/](https://mchorfa.github.io/portctl/) (or in the `docs/` directory).
 
 ## Quick Start
 

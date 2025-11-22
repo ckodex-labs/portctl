@@ -2,6 +2,7 @@ package process
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -45,37 +46,12 @@ type SystemStats struct {
 	TopPortUsers      []Process `json:"top_port_users"`
 }
 
-// ServiceMap maps common ports to service names
-var ServiceMap = map[int]string{
-	20:    "FTP-DATA",
-	21:    "FTP",
-	22:    "SSH",
-	23:    "Telnet",
-	25:    "SMTP",
-	53:    "DNS",
-	80:    "HTTP",
-	110:   "POP3",
-	143:   "IMAP",
-	443:   "HTTPS",
-	993:   "IMAPS",
-	995:   "POP3S",
-	1433:  "SQL Server",
-	1521:  "Oracle",
-	3000:  "Development Server",
-	3001:  "Development Server",
-	3306:  "MySQL",
-	5000:  "Development Server",
-	5432:  "PostgreSQL",
-	5672:  "RabbitMQ",
-	6379:  "Redis",
-	8000:  "Development Server",
-	8080:  "HTTP Alt",
-	8081:  "HTTP Alt",
-	8888:  "Jupyter",
-	9000:  "Development Server",
-	9090:  "Prometheus",
-	11211: "Memcached",
-	27017: "MongoDB",
+// FilterOptions defines criteria for filtering processes
+type FilterOptions struct {
+	Service     string
+	User        string
+	MemoryLimit float64
+	CPULimit    float64
 }
 
 // ProcessManager handles process operations with enhanced features
@@ -91,25 +67,25 @@ func NewProcessManager() *ProcessManager {
 }
 
 // GetProcessesOnPort returns all processes listening on the specified port with enhanced details
-func (pm *ProcessManager) GetProcessesOnPort(port int) ([]Process, error) {
-	processes, err := pm.getBasicProcesses(port)
+func (pm *ProcessManager) GetProcessesOnPort(ctx context.Context, port int) ([]Process, error) {
+	processes, err := pm.getBasicProcesses(ctx, port)
 	if err != nil {
 		return nil, err
 	}
 
 	// Enhance with additional metrics
-	return pm.enhanceProcesses(processes), nil
+	return pm.enhanceProcesses(ctx, processes), nil
 }
 
 // GetAllProcesses returns all processes with open ports with enhanced details
-func (pm *ProcessManager) GetAllProcesses() ([]Process, error) {
-	processes, err := pm.getBasicProcesses(0)
+func (pm *ProcessManager) GetAllProcesses(ctx context.Context) ([]Process, error) {
+	processes, err := pm.getBasicProcesses(ctx, 0)
 	if err != nil {
 		return nil, err
 	}
 
 	// Enhance with additional metrics
-	enhanced := pm.enhanceProcesses(processes)
+	enhanced := pm.enhanceProcesses(ctx, processes)
 
 	// Sort by port number
 	sort.Slice(enhanced, func(i, j int) bool {
@@ -120,20 +96,20 @@ func (pm *ProcessManager) GetAllProcesses() ([]Process, error) {
 }
 
 // GetSystemStats returns comprehensive system statistics
-func (pm *ProcessManager) GetSystemStats() (*SystemStats, error) {
-	processes, err := pm.GetAllProcesses()
+func (pm *ProcessManager) GetSystemStats(ctx context.Context) (*SystemStats, error) {
+	processes, err := pm.GetAllProcesses(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get CPU usage
-	cpuPercent, err := cpu.Percent(time.Second, false)
+	cpuPercent, err := cpu.PercentWithContext(ctx, time.Second, false)
 	if err != nil {
 		cpuPercent = []float64{0}
 	}
 
 	// Get memory stats
-	memStats, err := mem.VirtualMemory()
+	memStats, err := mem.VirtualMemoryWithContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -159,8 +135,8 @@ func (pm *ProcessManager) GetSystemStats() (*SystemStats, error) {
 }
 
 // GetProcessesByService returns processes filtered by service type
-func (pm *ProcessManager) GetProcessesByService(serviceType string) ([]Process, error) {
-	processes, err := pm.GetAllProcesses()
+func (pm *ProcessManager) GetProcessesByService(ctx context.Context, serviceType string) ([]Process, error) {
+	processes, err := pm.GetAllProcesses(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -179,8 +155,8 @@ func (pm *ProcessManager) GetProcessesByService(serviceType string) ([]Process, 
 }
 
 // FindAvailablePorts suggests available ports in common ranges
-func (pm *ProcessManager) FindAvailablePorts(startPort, endPort int, count int) ([]int, error) {
-	processes, err := pm.GetAllProcesses()
+func (pm *ProcessManager) FindAvailablePorts(ctx context.Context, startPort, endPort int, count int) ([]int, error) {
+	processes, err := pm.GetAllProcesses(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -202,26 +178,26 @@ func (pm *ProcessManager) FindAvailablePorts(startPort, endPort int, count int) 
 }
 
 // KillProcesses kills multiple processes by PID with enhanced error reporting
-func (pm *ProcessManager) KillProcesses(pids []int, force bool) map[int]error {
+func (pm *ProcessManager) KillProcesses(ctx context.Context, pids []int, force bool) map[int]error {
 	results := make(map[int]error)
 
 	for _, pid := range pids {
-		results[pid] = pm.KillProcess(pid, force)
+		results[pid] = pm.KillProcess(ctx, pid, force)
 	}
 
 	return results
 }
 
 // KillProcess kills a process by PID
-func (pm *ProcessManager) KillProcess(pid int, force bool) error {
+func (pm *ProcessManager) KillProcess(ctx context.Context, pid int, force bool) error {
 	if runtime.GOOS == "windows" {
 		var cmd *exec.Cmd
 		if force {
 			// #nosec G204: Arguments are constructed from validated integer pid, not user input
-			cmd = exec.Command("taskkill", "/F", "/PID", strconv.Itoa(pid))
+			cmd = exec.CommandContext(ctx, "taskkill", "/F", "/PID", strconv.Itoa(pid))
 		} else {
 			// #nosec G204: Arguments are constructed from validated integer pid, not user input
-			cmd = exec.Command("taskkill", "/PID", strconv.Itoa(pid))
+			cmd = exec.CommandContext(ctx, "taskkill", "/PID", strconv.Itoa(pid))
 		}
 		return cmd.Run()
 	} else {
@@ -240,60 +216,130 @@ func (pm *ProcessManager) KillProcess(pid int, force bool) error {
 	}
 }
 
+// FilterProcesses filters a list of processes based on options
+func (pm *ProcessManager) FilterProcesses(processes []Process, opts FilterOptions) []Process {
+	var filtered []Process
+
+	for _, proc := range processes {
+		match := true
+
+		// Filter by service type
+		if opts.Service != "" {
+			if !strings.Contains(strings.ToLower(proc.ServiceType), strings.ToLower(opts.Service)) &&
+				!strings.Contains(strings.ToLower(proc.Command), strings.ToLower(opts.Service)) {
+				match = false
+			}
+		}
+
+		// Filter by user
+		if opts.User != "" {
+			if !strings.Contains(strings.ToLower(proc.User), strings.ToLower(opts.User)) {
+				match = false
+			}
+		}
+
+		// Filter by memory usage
+		if opts.MemoryLimit > 0 && proc.MemoryMB <= float32(opts.MemoryLimit) {
+			match = false
+		}
+
+		// Filter by CPU usage
+		if opts.CPULimit > 0 && proc.CPUPercent <= opts.CPULimit {
+			match = false
+		}
+
+		if match {
+			filtered = append(filtered, proc)
+		}
+	}
+
+	return filtered
+}
+
+// SortProcesses sorts a list of processes by a given field
+func (pm *ProcessManager) SortProcesses(processes []Process, sortBy string) []Process {
+	if sortBy == "" {
+		sortBy = "port" // Default sort by port
+	}
+
+	sort.Slice(processes, func(i, j int) bool {
+		switch strings.ToLower(sortBy) {
+		case "pid":
+			return processes[i].PID < processes[j].PID
+		case "port":
+			return processes[i].Port < processes[j].Port
+		case "cpu":
+			return processes[i].CPUPercent > processes[j].CPUPercent // Descending
+		case "memory", "mem":
+			return processes[i].MemoryMB > processes[j].MemoryMB // Descending
+		case "command", "cmd":
+			return processes[i].Command < processes[j].Command
+		case "service":
+			return processes[i].ServiceType < processes[j].ServiceType
+		case "user":
+			return processes[i].User < processes[j].User
+		default:
+			return processes[i].Port < processes[j].Port
+		}
+	})
+
+	return processes
+}
+
 // getBasicProcesses gets basic process information (original functionality)
-func (pm *ProcessManager) getBasicProcesses(targetPort int) ([]Process, error) {
+func (pm *ProcessManager) getBasicProcesses(ctx context.Context, targetPort int) ([]Process, error) {
 	switch runtime.GOOS {
 	case "darwin", "linux":
-		return pm.getProcessesUnix(targetPort)
+		return pm.getProcessesUnix(ctx, targetPort)
 	case "windows":
-		return pm.getProcessesWindows(targetPort)
+		return pm.getProcessesWindows(ctx, targetPort)
 	default:
 		return nil, fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
 	}
 }
 
 // enhanceProcesses adds detailed metrics to processes
-func (pm *ProcessManager) enhanceProcesses(processes []Process) []Process {
+func (pm *ProcessManager) enhanceProcesses(ctx context.Context, processes []Process) []Process {
 	if !pm.enableMetrics {
 		return processes
 	}
 
 	for i := range processes {
-		pm.enhanceProcess(&processes[i])
+		pm.enhanceProcess(ctx, &processes[i])
 	}
 
 	return processes
 }
 
 // enhanceProcess adds detailed metrics to a single process
-func (pm *ProcessManager) enhanceProcess(proc *Process) {
+func (pm *ProcessManager) enhanceProcess(ctx context.Context, proc *Process) {
 	// Get detailed process information
 	if proc.PID < 0 || proc.PID > 2147483647 {
 		return
 	}
-	if p, err := process.NewProcess(int32(proc.PID)); err == nil {
+	if p, err := process.NewProcessWithContext(ctx, int32(proc.PID)); err == nil {
 		// Get CPU percent
-		if cpuPercent, err := p.CPUPercent(); err == nil {
+		if cpuPercent, err := p.CPUPercentWithContext(ctx); err == nil {
 			proc.CPUPercent = cpuPercent
 		}
 
 		// Get memory info
-		if memInfo, err := p.MemoryInfo(); err == nil {
+		if memInfo, err := p.MemoryInfoWithContext(ctx); err == nil {
 			proc.MemoryMB = float32(memInfo.RSS) / 1024 / 1024
 		}
 
 		// Get user
-		if username, err := p.Username(); err == nil {
+		if username, err := p.UsernameWithContext(ctx); err == nil {
 			proc.User = username
 		}
 
 		// Get start time
-		if createTime, err := p.CreateTime(); err == nil {
+		if createTime, err := p.CreateTimeWithContext(ctx); err == nil {
 			proc.StartTime = time.Unix(createTime/1000, 0)
 		}
 
 		// Get full command line
-		if cmdline, err := p.Cmdline(); err == nil {
+		if cmdline, err := p.CmdlineWithContext(ctx); err == nil {
 			proc.FullCommand = cmdline
 		}
 	}
@@ -367,25 +413,22 @@ func (pm *ProcessManager) countUniquePorts(processes []Process) int {
 	return len(ports)
 }
 
-// All the original methods (getProcessesUnix, parseUnixOutput, etc.) remain the same
-// ... [keeping all the existing implementation for backward compatibility]
-
 // getProcessesUnix gets processes on Unix-like systems
-func (pm *ProcessManager) getProcessesUnix(port int) ([]Process, error) {
+func (pm *ProcessManager) getProcessesUnix(ctx context.Context, port int) ([]Process, error) {
 	var cmd *exec.Cmd
 
 	// Try lsof first (more reliable)
 	if _, err := exec.LookPath("lsof"); err == nil {
 		// #nosec G204: port is an integer, not user input
-		cmd = exec.Command("lsof", "-i", fmt.Sprintf(":%d", port), "-P", "-n")
+		cmd = exec.CommandContext(ctx, "lsof", "-i", fmt.Sprintf(":%d", port), "-P", "-n")
 		if port == 0 {
 			// #nosec G204: no user input
-			cmd = exec.Command("lsof", "-i", "-P", "-n")
+			cmd = exec.CommandContext(ctx, "lsof", "-i", "-P", "-n")
 		}
 	} else {
 		// Fallback to netstat
 		// #nosec G204: no user input
-		cmd = exec.Command("netstat", "-tulpn")
+		cmd = exec.CommandContext(ctx, "netstat", "-tulpn")
 	}
 
 	output, err := cmd.Output()
@@ -553,18 +596,17 @@ func (pm *ProcessManager) parseNetstatLine(line string, targetPort int) *Process
 	}
 }
 
-// Windows methods remain the same...
-func (pm *ProcessManager) getProcessesWindows(port int) ([]Process, error) {
-	cmd := exec.Command("netstat", "-ano")
+func (pm *ProcessManager) getProcessesWindows(ctx context.Context, port int) ([]Process, error) {
+	cmd := exec.CommandContext(ctx, "netstat", "-ano")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute netstat: %v", err)
 	}
 
-	return pm.parseWindowsOutput(string(output), port)
+	return pm.parseWindowsOutput(ctx, string(output), port)
 }
 
-func (pm *ProcessManager) parseWindowsOutput(output string, targetPort int) ([]Process, error) {
+func (pm *ProcessManager) parseWindowsOutput(ctx context.Context, output string, targetPort int) ([]Process, error) {
 	var processes []Process
 	scanner := bufio.NewScanner(strings.NewReader(output))
 
@@ -607,7 +649,7 @@ func (pm *ProcessManager) parseWindowsOutput(output string, targetPort int) ([]P
 		}
 
 		// Get process name
-		command := pm.getWindowsProcessName(pid)
+		command := pm.getWindowsProcessName(ctx, pid)
 
 		state := "LISTENING"
 		if len(fields) > 3 && protocol == "TCP" {
@@ -633,9 +675,9 @@ func (pm *ProcessManager) parseWindowsOutput(output string, targetPort int) ([]P
 	return processes, scanner.Err()
 }
 
-func (pm *ProcessManager) getWindowsProcessName(pid int) string {
+func (pm *ProcessManager) getWindowsProcessName(ctx context.Context, pid int) string {
 	// #nosec G204: pid is an integer, not user input
-	cmd := exec.Command("tasklist", "/FI", fmt.Sprintf("PID eq %d", pid), "/FO", "CSV", "/NH")
+	cmd := exec.CommandContext(ctx, "tasklist", "/FI", fmt.Sprintf("PID eq %d", pid), "/FO", "CSV", "/NH")
 	output, err := cmd.Output()
 	if err != nil {
 		return "unknown"

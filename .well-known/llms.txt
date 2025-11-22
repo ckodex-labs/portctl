@@ -12,6 +12,7 @@ Project-Description: Secure, cross-platform CLI for managing processes on ports.
 Project-Homepage: https://github.com/mchorfa/portctl
 Documentation: https://mchorfa.github.io/portctl
 MCP-Manifest: /.well-known/mcp-manifest.jsonld
+Skills: /.well-known/skills.txt
 SBOM: /.well-known/sbom.json
 
 # Contact

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -71,6 +72,7 @@ func runWatch(cmd *cobra.Command, args []string) {
 	}
 
 	pm := process.NewProcessManager()
+	ctx := cmd.Context()
 	state := &watchState{
 		processes: make(map[string]process.Process),
 	}
@@ -95,7 +97,7 @@ func runWatch(cmd *cobra.Command, args []string) {
 	fmt.Print("\033[2J\033[H")
 
 	// Initial load
-	if err := updateProcesses(pm, state, targetPort, false); err != nil {
+	if err := updateProcesses(ctx, pm, state, targetPort, false); err != nil {
 		color.Red("Error loading initial processes: %v", err)
 		os.Exit(1)
 	}
@@ -116,7 +118,7 @@ func runWatch(cmd *cobra.Command, args []string) {
 					s.Start()
 				}
 
-				if err := updateProcesses(pm, state, targetPort, true); err != nil {
+				if err := updateProcesses(ctx, pm, state, targetPort, true); err != nil {
 					if !watchContinuous {
 						s.Stop()
 					}
@@ -179,14 +181,14 @@ func runWatch(cmd *cobra.Command, args []string) {
 	color.Green("\n👋 Watch stopped. Total updates: %d", state.totalUpdates)
 }
 
-func updateProcesses(pm *process.ProcessManager, state *watchState, targetPort int, detectChanges bool) error {
+func updateProcesses(ctx context.Context, pm *process.ProcessManager, state *watchState, targetPort int, detectChanges bool) error {
 	var processes []process.Process
 	var err error
 
 	if targetPort > 0 {
-		processes, err = pm.GetProcessesOnPort(targetPort)
+		processes, err = pm.GetProcessesOnPort(ctx, targetPort)
 	} else {
-		processes, err = pm.GetAllProcesses()
+		processes, err = pm.GetAllProcesses(ctx)
 	}
 
 	if err != nil {

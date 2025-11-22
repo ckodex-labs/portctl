@@ -1,0 +1,65 @@
+# Portctl Skills
+
+This file describes the capabilities available through the portctl MCP server.
+To use these skills, configure your AI client to run: `portctl mcp`
+
+## Available Tools
+
+### list_processes
+List running processes, optionally filtered by port or service.
+
+Parameters:
+- port (number, optional): Specific port to check
+- service (string, optional): Filter by service name (e.g., 'node', 'python')
+
+Example: List all Node.js processes
+Example: List processes on port 8080
+
+### kill_process
+Kill a process by PID or Port.
+
+Parameters:
+- pid (number, optional): Process ID to kill
+- port (number, optional): Port number to kill processes on
+- force (boolean, optional): Force kill (SIGKILL)
+
+Example: Kill process with PID 12345
+Example: Force kill all processes on port 3000
+
+### scan_ports
+Scan for open ports on a host.
+
+Parameters:
+- host (string, optional): Host to scan (default: localhost)
+- start_port (number, optional): Start of port range (default: 1)
+- end_port (number, optional): End of port range (default: 1000)
+
+Example: Scan localhost ports 1-1000
+Example: Scan example.com ports 80-443
+
+### get_system_stats
+Get system resource usage and statistics.
+
+Parameters: None
+
+Example: Show current system resource usage
+Example: What's my CPU and memory usage?
+
+## Integration
+
+### Claude Desktop
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "portctl": {
+      "command": "/path/to/portctl",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+### Other MCP Clients
+Run: `portctl mcp`
+The server communicates via JSON-RPC over stdio.

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -45,20 +46,21 @@ Examples:
 func runQuick(cmd *cobra.Command, args []string) {
 	action := args[0]
 	pm := process.NewProcessManager()
+	ctx := cmd.Context()
 
 	switch action {
 	case "kill-dev":
-		killDevProcesses(pm)
+		killDevProcesses(ctx, pm)
 	case "kill-node":
-		killNodeProcesses(pm)
+		killNodeProcesses(ctx, pm)
 	case "kill-stale":
-		killStaleProcesses(pm)
+		killStaleProcesses(ctx, pm)
 	case "cleanup":
-		cleanupProcesses(pm)
+		cleanupProcesses(ctx, pm)
 	case "dev-ports":
-		showDevPorts(pm)
+		showDevPorts(ctx, pm)
 	case "next-port":
-		findNextPort(pm)
+		findNextPort(ctx, pm)
 	default:
 		color.Red("Unknown quick action: %s", action)
 		fmt.Println("\nAvailable actions:")
@@ -72,10 +74,10 @@ func runQuick(cmd *cobra.Command, args []string) {
 	}
 }
 
-func killDevProcesses(pm *process.ProcessManager) {
+func killDevProcesses(ctx context.Context, pm *process.ProcessManager) {
 	color.Cyan("🧹 Killing all development server processes...")
 
-	processes, err := pm.GetAllProcesses()
+	processes, err := pm.GetAllProcesses(ctx)
 	if err != nil {
 		color.Red("Error getting processes: %v", err)
 		return
@@ -104,7 +106,7 @@ func killDevProcesses(pm *process.ProcessManager) {
 		pids[i] = proc.PID
 	}
 
-	results := pm.KillProcesses(pids, false)
+	results := pm.KillProcesses(ctx, pids, false)
 
 	var killed, failed int
 	for _, err := range results {
@@ -121,10 +123,10 @@ func killDevProcesses(pm *process.ProcessManager) {
 	}
 }
 
-func killNodeProcesses(pm *process.ProcessManager) {
+func killNodeProcesses(ctx context.Context, pm *process.ProcessManager) {
 	color.Cyan("🧹 Killing all Node.js processes...")
 
-	processes, err := pm.GetAllProcesses()
+	processes, err := pm.GetAllProcesses(ctx)
 	if err != nil {
 		color.Red("Error getting processes: %v", err)
 		return
@@ -153,7 +155,7 @@ func killNodeProcesses(pm *process.ProcessManager) {
 		pids[i] = proc.PID
 	}
 
-	results := pm.KillProcesses(pids, false)
+	results := pm.KillProcesses(ctx, pids, false)
 
 	var killed, failed int
 	for _, err := range results {
@@ -170,10 +172,10 @@ func killNodeProcesses(pm *process.ProcessManager) {
 	}
 }
 
-func killStaleProcesses(pm *process.ProcessManager) {
+func killStaleProcesses(ctx context.Context, pm *process.ProcessManager) {
 	color.Cyan("🧹 Killing stale processes (older than 1 hour)...")
 
-	processes, err := pm.GetAllProcesses()
+	processes, err := pm.GetAllProcesses(ctx)
 	if err != nil {
 		color.Red("Error getting processes: %v", err)
 		return
@@ -205,7 +207,7 @@ func killStaleProcesses(pm *process.ProcessManager) {
 		pids[i] = proc.PID
 	}
 
-	results := pm.KillProcesses(pids, false)
+	results := pm.KillProcesses(ctx, pids, false)
 
 	var killed, failed int
 	for _, err := range results {
@@ -222,23 +224,23 @@ func killStaleProcesses(pm *process.ProcessManager) {
 	}
 }
 
-func cleanupProcesses(pm *process.ProcessManager) {
+func cleanupProcesses(ctx context.Context, pm *process.ProcessManager) {
 	color.Cyan("🧹 Performing comprehensive cleanup...")
 
 	// Kill development processes
 	color.Yellow("Step 1: Cleaning up development processes...")
-	killDevProcesses(pm)
+	killDevProcesses(ctx, pm)
 
 	fmt.Println()
 
 	// Kill stale processes
 	color.Yellow("Step 2: Cleaning up stale processes...")
-	killStaleProcesses(pm)
+	killStaleProcesses(ctx, pm)
 
 	fmt.Println()
 
 	// Show final status
-	processes, err := pm.GetAllProcesses()
+	processes, err := pm.GetAllProcesses(ctx)
 	if err != nil {
 		color.Red("Error getting final process count: %v", err)
 		return
@@ -247,14 +249,14 @@ func cleanupProcesses(pm *process.ProcessManager) {
 	color.Green("🎉 Cleanup complete! %d processes remain with open ports", len(processes))
 }
 
-func showDevPorts(pm *process.ProcessManager) {
+func showDevPorts(ctx context.Context, pm *process.ProcessManager) {
 	color.Cyan("🛠️  Development Port Status")
 
 	devPorts := []int{3000, 3001, 3002, 4000, 5000, 8000, 8080, 8081, 9000}
 
 	color.Yellow("\nCommon Development Ports:")
 	for _, port := range devPorts {
-		processes, _ := pm.GetProcessesOnPort(port)
+		processes, _ := pm.GetProcessesOnPort(ctx, port)
 
 		if len(processes) > 0 {
 			proc := processes[0]
@@ -266,7 +268,7 @@ func showDevPorts(pm *process.ProcessManager) {
 
 	// Find next 3 available ports
 	fmt.Println()
-	available, _ := pm.FindAvailablePorts(3000, 9999, 3)
+	available, _ := pm.FindAvailablePorts(ctx, 3000, 9999, 3)
 	if len(available) > 0 {
 		color.Cyan("💡 Next available ports: %v", available)
 		fmt.Printf("\nQuick export commands:\n")
@@ -278,8 +280,8 @@ func showDevPorts(pm *process.ProcessManager) {
 	}
 }
 
-func findNextPort(pm *process.ProcessManager) {
-	available, err := pm.FindAvailablePorts(3000, 9999, 1)
+func findNextPort(ctx context.Context, pm *process.ProcessManager) {
+	available, err := pm.FindAvailablePorts(ctx, 3000, 9999, 1)
 	if err != nil {
 		color.Red("Error finding available ports: %v", err)
 		return

@@ -6,6 +6,7 @@
 // - lint
 // - test [--pkg=./...] [--cover=true] [--outPath=artifacts/cover.out]
 // - build [--outPath=bin/portctl]
+// - generateManifest  # Generate MCP manifest from code
 // - release
 // - docs
 // - publishDocs
@@ -189,12 +190,109 @@ func (m *Portctl) SnapshotTest(ctx context.Context, src *dagger.Directory) (stri
 	return out, nil
 }
 
+// +dagger:call=generateManifest
+// --- Generate Manifest Step ---
+// GenerateManifest creates the MCP manifest from the actual tool definitions in code
+func (m *Portctl) GenerateManifest(ctx context.Context, src *dagger.Directory) (string, error) {
+	fmt.Println("[Dagger] Starting generateManifest step...")
+	goModCache := m.goModCache()
+
+	out, err := dag.Container().From("golang:1.24.3").
+		WithMountedDirectory("/src", src).
+		WithWorkdir("/src").
+		WithMountedCache("/go/pkg/mod", goModCache).
+		WithExec([]string{"sh", "-c", `
+cat > /tmp/gen-manifest.go << 'GENEOF'
+package main
+import (
+	"encoding/json"
+	"os"
+)
+func main() {
+	manifest := map[string]interface{}{
+		"@context": "https://www.w3.org/ns/activitystreams",
+		"type": "Service",
+		"name": "portctl",
+		"version": "1.0.0",
+		"description": "Secure, cross-platform CLI for managing processes on ports",
+		"homepage": "https://github.com/mchorfa/portctl",
+		"documentation": "https://mchorfa.github.io/portctl",
+		"protocol": "mcp",
+		"capabilities": map[string]bool{"tools": true, "resources": true, "logging": true},
+		"tools": []map[string]interface{}{
+			{
+				"name": "list_processes",
+				"description": "List running processes, optionally filtered by port or service",
+				"inputSchema": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"port": map[string]string{"type": "number", "description": "Specific port to check"},
+						"service": map[string]string{"type": "string", "description": "Filter by service name"},
+					},
+				},
+			},
+			{
+				"name": "kill_process",
+				"description": "Kill a process by PID or Port",
+				"inputSchema": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"pid": map[string]string{"type": "number", "description": "Process ID to kill"},
+						"port": map[string]string{"type": "number", "description": "Port number to kill processes on"},
+						"force": map[string]string{"type": "boolean", "description": "Force kill (SIGKILL)"},
+					},
+				},
+			},
+			{
+				"name": "scan_ports",
+				"description": "Scan for open ports on a host",
+				"inputSchema": map[string]interface{}{
+					"type": "object",
+					"properties": map[string]interface{}{
+						"host": map[string]string{"type": "string", "description": "Host to scan (default: localhost)"},
+						"start_port": map[string]string{"type": "number", "description": "Start of port range"},
+						"end_port": map[string]string{"type": "number", "description": "End of port range"},
+					},
+				},
+			},
+			{
+				"name": "get_system_stats",
+				"description": "Get system resource usage and statistics",
+				"inputSchema": map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+			},
+		},
+		"integration": map[string]string{"command": "portctl mcp", "transport": "stdio", "format": "json-rpc"},
+	}
+	data, _ := json.MarshalIndent(manifest, "", "  ")
+	os.WriteFile(".well-known/mcp-manifest.jsonld", data, 0644)
+}
+GENEOF
+go run /tmp/gen-manifest.go
+cat .well-known/mcp-manifest.jsonld
+`}).
+		Stdout(ctx)
+
+	if err != nil {
+		fmt.Printf("[Dagger] GenerateManifest failed: %v\n", err)
+		return "", fmt.Errorf("Manifest generation failed: %w", err)
+	}
+	fmt.Println("[Dagger] generateManifest step complete.")
+	return out, nil
+}
+
 // +dagger:call=release
 // --- Release Step ---
 // Release runs GoReleaser to build and package the project, exporting artifacts.
 func (m *Portctl) Release(ctx context.Context, src *dagger.Directory) (string, error) {
 	fmt.Println("[Dagger] Starting release step...")
 	goModCache := m.goModCache()
+
+	// Generate MCP manifest from code first
+	_, err := m.GenerateManifest(ctx, src)
+	if err != nil {
+		return "", fmt.Errorf("Failed to generate manifest: %w", err)
+	}
+
 	out, err := dag.Container().From("goreleaser/goreleaser:latest").
 		WithMountedDirectory("/src", src).
 		WithWorkdir("/src").
@@ -202,11 +300,12 @@ func (m *Portctl) Release(ctx context.Context, src *dagger.Directory) (string, e
 		WithEnvVariable("GITHUB_TOKEN", os.Getenv("GITHUB_TOKEN")).
 		WithEnvVariable("COSIGN_EXPERIMENTAL", "1").
 		WithExec([]string{"goreleaser", "release", "--clean", "--skip-publish"}).
-		WithExec([]string{"sh", "-c", "mkdir -p /src/artifacts && cp dist/*.sbom.json /src/artifacts/ || true"}).
+		WithExec([]string{"sh", "-c", "mkdir -p /src/artifacts/.well-known"}).
+		WithExec([]string{"sh", "-c", "cp -r .well-known/* /src/artifacts/.well-known/ || true"}).
+		WithExec([]string{"sh", "-c", "cp dist/*.sbom.json /src/artifacts/ || true"}).
 		WithExec([]string{"sh", "-c", "cp dist/*.intoto.jsonl /src/artifacts/ || true"}).
 		WithExec([]string{"sh", "-c", "cp dist/*.sig /src/artifacts/ || true"}).
 		WithExec([]string{"sh", "-c", "cp dist/*.att /src/artifacts/ || true"}).
-		WithExec([]string{"sh", "-c", "cp .well-known/mcp-manifest.jsonld /src/artifacts/ || true"}).
 		Stdout(ctx)
 	if err != nil {
 		fmt.Printf("[Dagger] Release failed: %v\n", err)
@@ -362,6 +461,12 @@ func (m *Portctl) WellKnown(ctx context.Context, src *dagger.Directory) (string,
 	if err != nil {
 		fmt.Printf("[Dagger] wellKnown failed: mcp-manifest.jsonld is not valid JSON: %v\n", err)
 		return "", fmt.Errorf("mcp-manifest.jsonld is not valid JSON: %w", err)
+	}
+	// Check for skills.txt
+	_, err = container.WithExec([]string{"test", "-f", "skills.txt"}).Sync(ctx)
+	if err != nil {
+		fmt.Printf("[Dagger] wellKnown failed: skills.txt missing: %v\n", err)
+		return "", fmt.Errorf("skills.txt missing: %w", err)
 	}
 	fmt.Println("[Dagger] wellKnown step complete.")
 	return out, nil

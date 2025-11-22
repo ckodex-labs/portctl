@@ -14,6 +14,8 @@ import (
 	tablepretty "github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
+
+	process "dagger/portctl/pkg"
 )
 
 var (
@@ -71,7 +73,7 @@ func runScan(cmd *cobra.Command, args []string) {
 	var err error
 
 	if scanCommon {
-		ports = []int{21, 22, 23, 25, 53, 80, 110, 135, 139, 143, 443, 993, 995, 1433, 1521, 3306, 3389, 5432, 5900, 8080}
+		ports = process.CommonPorts
 	} else if scanRange != "" {
 		ports, err = parsePortRange(scanRange)
 		if err != nil {
@@ -94,7 +96,7 @@ func runScan(cmd *cobra.Command, args []string) {
 	// Start spinner
 	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	if err := s.Color("cyan"); err != nil {
-		color.Red("Spinner color error: %v", err)
+		// Ignore spinner color error, it's not critical
 	}
 	s.Suffix = fmt.Sprintf(" Scanning %d ports ", len(ports))
 	s.Start()
@@ -198,14 +200,12 @@ func scanPort(host string, port int) ScanResult {
 		return result
 	}
 	defer func() {
-		if err := conn.Close(); err != nil {
-			// TODO: handle error appropriately (log, etc.)
-			fmt.Println("conn.Close() error:", err)
-		}
+		// Best effort close, ignore error as we are done with the connection
+		_ = conn.Close()
 	}()
 
 	result.Status = "open"
-	result.Service = getServiceName(port)
+	result.Service = process.GetServiceName(port)
 
 	// Try to grab banner
 	banner := grabBanner(conn, port)
@@ -214,36 +214,6 @@ func scanPort(host string, port int) ScanResult {
 	}
 
 	return result
-}
-
-func getServiceName(port int) string {
-	services := map[int]string{
-		21:   "FTP",
-		22:   "SSH",
-		23:   "Telnet",
-		25:   "SMTP",
-		53:   "DNS",
-		80:   "HTTP",
-		110:  "POP3",
-		135:  "RPC",
-		139:  "NetBIOS",
-		143:  "IMAP",
-		443:  "HTTPS",
-		993:  "IMAPS",
-		995:  "POP3S",
-		1433: "MSSQL",
-		1521: "Oracle",
-		3306: "MySQL",
-		3389: "RDP",
-		5432: "PostgreSQL",
-		5900: "VNC",
-		8080: "HTTP-Alt",
-	}
-
-	if service, exists := services[port]; exists {
-		return service
-	}
-	return "Unknown"
 }
 
 func grabBanner(conn net.Conn, port int) string {

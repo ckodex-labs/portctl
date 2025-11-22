@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -56,13 +55,14 @@ Examples:
 
 func runList(cmd *cobra.Command, args []string) {
 	pm := process.NewProcessManager()
+	ctx := cmd.Context()
 
 	var processes []process.Process
 	var err error
 
 	if len(args) == 0 || listAll {
 		// List all processes
-		processes, err = pm.GetAllProcesses()
+		processes, err = pm.GetAllProcesses(ctx)
 		if err != nil {
 			color.Red("Error getting processes: %v", err)
 			os.Exit(1)
@@ -75,7 +75,7 @@ func runList(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 
-		processes, err = pm.GetProcessesOnPort(port)
+		processes, err = pm.GetProcessesOnPort(ctx, port)
 		if err != nil {
 			color.Red("Error getting processes on port %d: %v", port, err)
 			os.Exit(1)
@@ -83,10 +83,16 @@ func runList(cmd *cobra.Command, args []string) {
 	}
 
 	// Apply filters
-	processes = applyFilters(processes)
+	filterOpts := process.FilterOptions{
+		Service:     listService,
+		User:        listUser,
+		MemoryLimit: listMemLimit,
+		CPULimit:    listCPULimit,
+	}
+	processes = pm.FilterProcesses(processes, filterOpts)
 
 	// Apply sorting
-	processes = applySorting(processes)
+	processes = pm.SortProcesses(processes, listSort)
 
 	if len(processes) == 0 {
 		if len(args) > 0 {
@@ -106,74 +112,6 @@ func runList(cmd *cobra.Command, args []string) {
 	} else {
 		outputTable(processes)
 	}
-}
-
-func applyFilters(processes []process.Process) []process.Process {
-	var filtered []process.Process
-
-	for _, proc := range processes {
-		match := true
-
-		// Filter by service type
-		if listService != "" {
-			if !strings.Contains(strings.ToLower(proc.ServiceType), strings.ToLower(listService)) &&
-				!strings.Contains(strings.ToLower(proc.Command), strings.ToLower(listService)) {
-				match = false
-			}
-		}
-
-		// Filter by user
-		if listUser != "" {
-			if !strings.Contains(strings.ToLower(proc.User), strings.ToLower(listUser)) {
-				match = false
-			}
-		}
-
-		// Filter by memory usage
-		if listMemLimit > 0 && proc.MemoryMB <= float32(listMemLimit) {
-			match = false
-		}
-
-		// Filter by CPU usage
-		if listCPULimit > 0 && proc.CPUPercent <= listCPULimit {
-			match = false
-		}
-
-		if match {
-			filtered = append(filtered, proc)
-		}
-	}
-
-	return filtered
-}
-
-func applySorting(processes []process.Process) []process.Process {
-	if listSort == "" {
-		listSort = "port" // Default sort by port
-	}
-
-	sort.Slice(processes, func(i, j int) bool {
-		switch strings.ToLower(listSort) {
-		case "pid":
-			return processes[i].PID < processes[j].PID
-		case "port":
-			return processes[i].Port < processes[j].Port
-		case "cpu":
-			return processes[i].CPUPercent > processes[j].CPUPercent // Descending
-		case "memory", "mem":
-			return processes[i].MemoryMB > processes[j].MemoryMB // Descending
-		case "command", "cmd":
-			return processes[i].Command < processes[j].Command
-		case "service":
-			return processes[i].ServiceType < processes[j].ServiceType
-		case "user":
-			return processes[i].User < processes[j].User
-		default:
-			return processes[i].Port < processes[j].Port
-		}
-	})
-
-	return processes
 }
 
 func outputTable(processes []process.Process) {
