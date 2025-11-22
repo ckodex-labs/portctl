@@ -39,6 +39,7 @@ jobs:
       - name: Build and Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
         run: dagger call release --src=.
       
       - name: Upload Artifacts
@@ -47,14 +48,3 @@ jobs:
         with:
           name: release-artifacts
           path: ./artifacts
-      
-      # GoReleaser for GitHub Release and Homebrew
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}

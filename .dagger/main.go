@@ -298,8 +298,9 @@ func (m *Portctl) Release(ctx context.Context, src *dagger.Directory) (string, e
 		WithWorkdir("/src").
 		WithMountedCache("/go/pkg/mod", goModCache).
 		WithEnvVariable("GITHUB_TOKEN", os.Getenv("GITHUB_TOKEN")).
+		WithEnvVariable("TAP_GITHUB_TOKEN", os.Getenv("TAP_GITHUB_TOKEN")).
 		WithEnvVariable("COSIGN_EXPERIMENTAL", "1").
-		WithExec([]string{"goreleaser", "release", "--clean", "--skip-publish"}).
+		WithExec([]string{"goreleaser", "release", "--clean"}).
 		WithExec([]string{"sh", "-c", "mkdir -p /src/artifacts/.well-known"}).
 		WithExec([]string{"sh", "-c", "cp -r .well-known/* /src/artifacts/.well-known/ || true"}).
 		WithExec([]string{"sh", "-c", "cp dist/*.sbom.json /src/artifacts/ || true"}).
