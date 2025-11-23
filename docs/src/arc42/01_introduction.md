@@ -217,7 +217,7 @@ User                CLI              ProcessManager      OS
 - **Process Isolation**: Only kills processes owned by current user (unless sudo)
 - **Confirmation Prompts**: Prevents accidental termination
 - **Input Validation**: All user inputs are validated and sanitized
-- **SLSA Compliance**: Build provenance and attestations for supply chain security
+- **SLSA Level 3 Compliance**: Signed build provenance and attestations for supply chain security
 
 #### SBOM (Software Bill of Materials)
 
@@ -230,11 +230,20 @@ Each release includes a comprehensive SBOM:
 
 #### Signed Releases
 
-Release signing configuration:
-- **Cosign** integration configured in `.goreleaser.yml`
-- Currently **commented out** (not active in production)
-- Supports keyless signing with `COSIGN_EXPERIMENTAL=1`
-- When enabled, generates `.sig` signature files
+Release signing with Cosign:
+- **Cosign** integration enabled in `.goreleaser.yml`
+- **Keyless signing** using GitHub OIDC (`COSIGN_EXPERIMENTAL=1`)
+- Generates `.sig` signature files and `.cert` certificates
+- Provides cryptographic proof of artifact integrity
+- Verifiable with `cosign verify-blob` command
+
+**Verification Example:**
+```bash
+cosign verify-blob \
+  --certificate portctl_linux_amd64.tar.gz.cert \
+  --signature portctl_linux_amd64.tar.gz.sig \
+  portctl_linux_amd64.tar.gz
+```
 
 #### AI Integration Metadata (`.well-known/`)
 

@@ -13,7 +13,7 @@ Welcome to the documentation for **portctl**!
 - **🛡️ Developer Focused**: "Quick" commands to kill dev servers, find free ports, and clean up zombies.
 - **📊 System Stats**: Insight into system resource usage and port distribution.
 - **🤖 AI Integration**: MCP server support with `.well-known` metadata (mcp-manifest.jsonld, llms.txt, skills.txt).
-- **🔒 Secure**: Built with security in mind (SLSA attestations, SBOM generation, signed releases).
+- **🔒 Secure**: SLSA Level 3 compliant with signed attestations, SBOM generation, and cryptographic signatures.
 
 ## Installation
 

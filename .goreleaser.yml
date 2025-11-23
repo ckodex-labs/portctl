@@ -24,10 +24,17 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
-# signs:
-#   - artifacts: all
-#     cmd: cosign
-#     args: [sign, $artifact]
+
+signs:
+  - artifacts: all
+    cmd: cosign
+    args:
+      - sign-blob
+      - --output-signature=${signature}
+      - --output-certificate=${certificate}
+      - ${artifact}
+      - --yes
+    
 sboms:
   - id: default
     artifacts: archive
