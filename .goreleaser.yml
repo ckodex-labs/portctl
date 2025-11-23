@@ -36,8 +36,20 @@ signs:
       - --yes
     
 sboms:
-  - id: default
+  - id: spdx
     artifacts: archive
+    documents:
+      - "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.sbom.spdx.json"
+  - id: cyclonedx
+    artifacts: archive
+    cmd: syft
+    args:
+      - "$artifact"
+      - "--output"
+      - "cyclonedx-json={{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.sbom.cyclonedx.json"
+    documents:
+      - "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.sbom.cyclonedx.json"
+      
 brews:
   - name: portctl
     repository:

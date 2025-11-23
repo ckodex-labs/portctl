@@ -221,12 +221,13 @@ User                CLI              ProcessManager      OS
 
 #### SBOM (Software Bill of Materials)
 
-Each release includes a comprehensive SBOM:
+Each release includes comprehensive SBOMs in **both** industry-standard formats:
+- **SPDX format**: `*.sbom.spdx.json` - Linux Foundation standard
+- **CycloneDX format**: `*.sbom.cyclonedx.json` - OWASP standard
 - Generated using **Syft** (via GoReleaser)
-- Format: **SPDX** (not CycloneDX)
 - Lists all dependencies and their versions
 - Helps with vulnerability tracking and compliance
-- Files: `*.sbom.json` in release artifacts
+- Compatible with different security scanning tools
 
 #### Signed Releases
 

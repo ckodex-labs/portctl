@@ -215,8 +215,8 @@ func main() {
 		"name": "portctl",
 		"version": "1.0.0",
 		"description": "Secure, cross-platform CLI for managing processes on ports",
-		"homepage": "https://github.com/mchorfa/portctl",
-		"documentation": "https://mchorfa.github.io/portctl",
+		"homepage": "https://github.com/ckodex-labs/portctl",
+		"documentation": "https://ckodex-labs.github.io/portctl",
 		"protocol": "mcp",
 		"capabilities": map[string]bool{"tools": true, "resources": true, "logging": true},
 		"tools": []map[string]interface{}{
@@ -301,7 +301,8 @@ func (m *Portctl) Release(ctx context.Context, src *dagger.Directory, githubToke
 		WithExec([]string{"goreleaser", "release", "--clean", "--skip=docker"}).
 		WithExec([]string{"sh", "-c", "mkdir -p /src/artifacts/.well-known"}).
 		WithExec([]string{"sh", "-c", "cp -r .well-known/* /src/artifacts/.well-known/ || true"}).
-		WithExec([]string{"sh", "-c", "cp dist/*.sbom.json /src/artifacts/ || true"}).
+		WithExec([]string{"sh", "-c", "cp dist/*.sbom.spdx.json /src/artifacts/ || true"}).
+		WithExec([]string{"sh", "-c", "cp dist/*.sbom.cyclonedx.json /src/artifacts/ || true"}).
 		WithExec([]string{"sh", "-c", "cp dist/*.intoto.jsonl /src/artifacts/ || true"}).
 		WithExec([]string{"sh", "-c", "cp dist/*.sig /src/artifacts/ || true"}).
 		WithExec([]string{"sh", "-c", "cp dist/*.att /src/artifacts/ || true"})
@@ -348,7 +349,7 @@ func (m *Portctl) PublishImage(ctx context.Context, src *dagger.Directory, githu
 
 	// Publish for each tag
 	for _, tag := range tags {
-		imageRef := fmt.Sprintf("ghcr.io/mchorfa/portctl:%s", tag)
+		imageRef := fmt.Sprintf("ghcr.io/ckodex-labs/portctl:%s", tag)
 		fmt.Printf("[Dagger] Publishing %s...\n", imageRef)
 
 		// Set version label for this specific tag (optional, but good practice)
@@ -447,7 +448,7 @@ func (m *Portctl) PublishDocs(ctx context.Context, src *dagger.Directory) (strin
 	}
 	repo := os.Getenv("GITHUB_REPOSITORY")
 	if repo == "" {
-		repo = "mchorfa/portctl"
+		repo = "ckodex-labs/portctl"
 	}
 	remoteUrl := fmt.Sprintf("https://x-access-token:%s@github.com/%s.git", ghToken, repo)
 
