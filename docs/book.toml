@@ -2,4 +2,11 @@
 authors = ["Mohamed-Noufel Chorfa"]
 language = "en"
 src = "src"
-title = "portctl"
+title = "Portctl Documentation"
+description = "Secure, cross-platform CLI for managing processes on ports"
+
+[output.html]
+additional-css = ["theme/custom.css"]
+git-repository-url = "https://github.com/mchorfa/portctl"
+edit-url-template = "https://github.com/mchorfa/portctl/edit/main/docs/{path}"
+site-url = "/portctl/"

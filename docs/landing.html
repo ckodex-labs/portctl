@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portctl - The Modern CLI for Port Management</title>
+    <meta name="description"
+        content="Secure, cross-platform CLI for managing processes on ports. Kill by port, interactive TUI, and real-time monitoring.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --fg: #f8fafc;
+            --primary: #38bdf8;
+            --primary-hover: #0ea5e9;
+            --secondary: #64748b;
+            --card-bg: #1e293b;
+            --border: #334155;
+            --gradient-start: #38bdf8;
+            --gradient-end: #818cf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--fg);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Navbar */
+        nav {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: rgba(15, 23, 42, 0.8);
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+
+        .nav-links a {
+            color: var(--secondary);
+            text-decoration: none;
+            margin-left: 2rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--fg);
+        }
+
+        .nav-links .github-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 8rem 0 6rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(15, 23, 42, 0) 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background-color: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        h1 span {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--secondary);
+            max-width: 600px;
+            margin: 0 auto 3rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 4rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #0f172a;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--fg);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Install Block */
+        .install-block {
+            background-color: #020617;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1rem 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: #a5b4fc;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            position: relative;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .install-cmd {
+            user-select: all;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: var(--secondary);
+            cursor: pointer;
+            padding: 0.25rem;
+            transition: color 0.2s;
+        }
+
+        .copy-btn:hover {
+            color: var(--fg);
+        }
+
+        /* Features */
+        .features {
+            padding: 6rem 0;
+            background-color: rgba(30, 41, 59, 0.3);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            transition: transform 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+            padding: 0.75rem;
+            background-color: rgba(56, 189, 248, 0.1);
+            border-radius: 0.75rem;
+        }
+
+        .feature-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--fg);
+        }
+
+        .feature-desc {
+            color: var(--secondary);
+            font-size: 1rem;
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--secondary);
+        }
+
+        .footer-links {
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-links a {
+            color: var(--secondary);
+            text-decoration: none;
+            margin: 0 1rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero {
+                padding: 4rem 0;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="container nav-content">
+            <a href="#" class="logo">portctl</a>
+            <div class="nav-links">
+                <a href="introduction.html">Documentation</a>
+                <a href="https://github.com/mchorfa/portctl" target="_blank" class="github-icon">GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container">
+            <div class="badge">v1.0.2 Released</div>
+            <h1>Manage Ports<br><span>Like a Pro</span></h1>
+            <p class="subtitle">The secure, cross-platform CLI for developers. Identify and kill processes, monitor
+                ports, and manage your dev environment with ease.</p>
+
+            <div class="cta-buttons">
+                <a href="introduction.html" class="btn btn-primary">Get Started</a>
+                <a href="https://github.com/mchorfa/portctl" target="_blank" class="btn btn-secondary">View on
+                    GitHub</a>
+            </div>
+
+            <div class="install-block">
+                <span style="color: #38bdf8;">$</span>
+                <span class="install-cmd">brew install mchorfa/tap/portctl</span>
+                <button class="copy-btn" onclick="navigator.clipboard.writeText('brew install mchorfa/tap/portctl')"
+                    title="Copy to clipboard">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3 class="feature-title">Kill by Port</h3>
+                    <p class="feature-desc">Forget `lsof -i :8080`. Just run `portctl kill 8080` and get back to coding
+                        instantly.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🖥️</div>
+                    <h3 class="feature-title">Interactive TUI</h3>
+                    <p class="feature-desc">Visual terminal interface to browse processes, filter by name, and manage
+                        resources.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">👀</div>
+                    <h3 class="feature-title">Watch Mode</h3>
+                    <p class="feature-desc">Monitor ports in real-time. Get desktop notifications when services start or
+                        stop.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3 class="feature-title">Secure & Safe</h3>
+                    <p class="feature-desc">Built-in safety checks, confirmation prompts, and SLSA Level 4 compliance.
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3 class="feature-title">AI Ready</h3>
+                    <p class="feature-desc">Includes MCP server and LLM metadata for seamless integration with AI
+                        agents.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3 class="feature-title">Cross Platform</h3>
+                    <p class="feature-desc">Native binaries for macOS, Linux, and Windows. Zero dependencies.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="introduction.html">Documentation</a>
+                <a href="https://github.com/mchorfa/portctl">GitHub</a>
+                <a href=".well-known/llms.txt">LLM Context</a>
+            </div>
+            <p>&copy; 2025 ckodex-labs. Released under MIT License.</p>
+        </div>
+    </footer>
+</body>
+
+</html>
