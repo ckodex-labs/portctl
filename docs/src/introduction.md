@@ -12,25 +12,26 @@ Welcome to the documentation for **portctl**!
 - **👀 Real-time Monitoring**: Watch ports for changes and get desktop notifications.
 - **🛡️ Developer Focused**: "Quick" commands to kill dev servers, find free ports, and clean up zombies.
 - **📊 System Stats**: Insight into system resource usage and port distribution.
-- **🔒 Secure**: Built with security in mind (SLSA 4 compliance, signed releases).
+- **🤖 AI Integration**: MCP server support with `.well-known` metadata (mcp-manifest.jsonld, llms.txt, skills.txt).
+- **🔒 Secure**: Built with security in mind (SLSA attestations, SBOM generation, signed releases).
 
 ## Installation
 
 ### Homebrew (macOS/Linux)
 
 ```bash
-brew install mchorfa/tap/portctl
+brew install ckodex-labs/tap/portctl
 ```
 
 ### Go Install
 
 ```bash
-go install github.com/mchorfa/portctl@latest
+go install github.com/ckodex-labs/portctl@latest
 ```
 
 ### Manual Download
 
-Download the latest binary from the [Releases Page](https://github.com/mchorfa/portctl/releases).
+Download the latest binary from the [Releases Page](https://github.com/ckodex-labs/portctl/releases).
 
 ## Getting Started
 

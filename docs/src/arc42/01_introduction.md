@@ -219,6 +219,32 @@ User                CLI              ProcessManager      OS
 - **Input Validation**: All user inputs are validated and sanitized
 - **SLSA Compliance**: Build provenance and attestations for supply chain security
 
+#### SBOM (Software Bill of Materials)
+
+Each release includes a comprehensive SBOM:
+- Generated using **Syft** (via GoReleaser)
+- Format: **SPDX** (not CycloneDX)
+- Lists all dependencies and their versions
+- Helps with vulnerability tracking and compliance
+- Files: `*.sbom.json` in release artifacts
+
+#### Signed Releases
+
+Release signing configuration:
+- **Cosign** integration configured in `.goreleaser.yml`
+- Currently **commented out** (not active in production)
+- Supports keyless signing with `COSIGN_EXPERIMENTAL=1`
+- When enabled, generates `.sig` signature files
+
+#### AI Integration Metadata (`.well-known/`)
+
+The project includes AI-native metadata for agent integration:
+- **`mcp-manifest.jsonld`**: Model Context Protocol server manifest (JSON-LD format)
+- **`llms.txt`**: LLM guidance and context for AI agents
+- **`skills.txt`**: Capability descriptions for MCP tools
+- Published to GitHub Pages at `/.well-known/` path
+- Included in release archives for offline access
+
 ### Error Handling
 
 - **Graceful Degradation**: Falls back to alternative methods if primary fails
