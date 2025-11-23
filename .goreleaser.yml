@@ -40,13 +40,7 @@ brews:
     homepage: https://github.com/mchorfa/portctl
     install: |
       bin.install "portctl"
-dockers:
-  - image_templates:
-      - ghcr.io/mchorfa/portctl:latest
-      - ghcr.io/mchorfa/portctl:{{ .Version }}
-    dockerfile: ./Dockerfile
-    build_flag_templates:
-      - --platform=linux/amd64,linux/arm64
+
 release:
   github:
     owner: mchorfa

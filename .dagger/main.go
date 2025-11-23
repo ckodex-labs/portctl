@@ -320,51 +320,53 @@ func (m *Portctl) Release(ctx context.Context, src *dagger.Directory, githubToke
 func (m *Portctl) PublishImage(ctx context.Context, src *dagger.Directory, githubToken *dagger.Secret, version *string) (string, error) {
 	fmt.Println("[Dagger] Starting publishImage step...")
 
-	tag := "latest"
+	// Define tags
+	tags := []string{"latest"}
 	if version != nil && *version != "" {
-		tag = *version
+		tags = append(tags, *version)
 	}
 
 	// Define platforms for multi-arch build
 	platforms := []dagger.Platform{"linux/amd64", "linux/arm64"}
 	variants := make([]*dagger.Container, len(platforms))
 
+	// We need to publish for each tag
+	var lastAddr string
+
+	// Build variants once
 	for i, platform := range platforms {
-		// Build container for each platform
-		// Note: We use the source directory which contains the Dockerfile
 		variants[i] = src.DockerBuild(dagger.DirectoryDockerBuildOpts{
 			Platform: platform,
 		}).
-			WithLabel("org.opencontainers.image.source", "https://github.com/ckodex-labs/portctl").
-			WithLabel("org.opencontainers.image.version", tag)
+			WithLabel("org.opencontainers.image.source", "https://github.com/ckodex-labs/portctl")
 	}
 
-	// Publish to GHCR
-	imageRef := fmt.Sprintf("ghcr.io/ckodex-labs/portctl:%s", tag)
+	// Publish for each tag
+	for _, tag := range tags {
+		imageRef := fmt.Sprintf("ghcr.io/mchorfa/portctl:%s", tag)
+		fmt.Printf("[Dagger] Publishing %s...\n", imageRef)
 
-	// We need to authenticate. We assume GITHUB_TOKEN has write:packages scope.
-	// We use the first variant to set up auth, but Publish handles the manifest list.
-	// Actually, WithRegistryAuth is needed on the container that performs the publish?
-	// No, Publish is a method on Container. We call it on a container.
-	// But for multi-arch, we use dag.Container().Publish(..., PlatformVariants: variants).
-	// We need to set auth on *that* container? Or just globally?
-	// Dagger usually handles auth if provided via WithRegistryAuth on the container being published.
+		// Set version label for this specific tag (optional, but good practice)
+		currentVariants := make([]*dagger.Container, len(variants))
+		for i, v := range variants {
+			currentVariants[i] = v.WithLabel("org.opencontainers.image.version", tag)
+		}
 
-	// Let's use an empty container to drive the publish, with auth configured.
-	publisher := dag.Container().
-		WithRegistryAuth("ghcr.io", "github-actions[bot]", githubToken)
+		publisher := dag.Container().
+			WithRegistryAuth("ghcr.io", "github-actions[bot]", githubToken)
 
-	addr, err := publisher.Publish(ctx, imageRef, dagger.ContainerPublishOpts{
-		PlatformVariants: variants,
-	})
+		addr, err := publisher.Publish(ctx, imageRef, dagger.ContainerPublishOpts{
+			PlatformVariants: currentVariants,
+		})
 
-	if err != nil {
-		fmt.Printf("[Dagger] PublishImage failed: %v\n", err)
-		return "", fmt.Errorf("Image publish failed: %w", err)
+		if err != nil {
+			return "", fmt.Errorf("Image publish failed for %s: %w", imageRef, err)
+		}
+		lastAddr = addr
+		fmt.Printf("[Dagger] Published image to %s\n", addr)
 	}
 
-	fmt.Printf("[Dagger] Published image to %s\n", addr)
-	return addr, nil
+	return lastAddr, nil
 }
 
 // +dagger:call=docs
