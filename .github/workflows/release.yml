@@ -42,6 +42,13 @@ jobs:
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
         run: dagger call release --src=. --github-token=env:GITHUB_TOKEN --tap-github-token=env:TAP_GITHUB_TOKEN
       
+      - name: Publish Docker Image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          dagger call publish-image --src=. --github-token=env:GITHUB_TOKEN --version=$VERSION
+      
       - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v4

@@ -291,24 +291,14 @@ func (m *Portctl) Release(ctx context.Context, src *dagger.Directory, githubToke
 		return "", fmt.Errorf("Failed to generate manifest: %w", err)
 	}
 
-	// Start Docker-in-Docker service
-	docker := dag.Container().
-		From("docker:dind").
-		WithEnvVariable("DOCKER_TLS_CERTDIR", ""). // Disable TLS for simplicity in CI
-		WithExec([]string{"dockerd-entrypoint.sh", "--tls=false"}).
-		WithExposedPort(2375).
-		AsService()
-
 	out, err := dag.Container().From("goreleaser/goreleaser:latest").
 		WithMountedDirectory("/src", src).
 		WithWorkdir("/src").
 		WithMountedCache("/go/pkg/mod", goModCache).
-		WithServiceBinding("docker", docker).
-		WithEnvVariable("DOCKER_HOST", "tcp://docker:2375").
 		WithSecretVariable("GITHUB_TOKEN", githubToken).
 		WithSecretVariable("TAP_GITHUB_TOKEN", tapGithubToken).
 		WithEnvVariable("COSIGN_EXPERIMENTAL", "1").
-		WithExec([]string{"goreleaser", "release", "--clean"}).
+		WithExec([]string{"goreleaser", "release", "--clean", "--skip=docker"}).
 		WithExec([]string{"sh", "-c", "mkdir -p /src/artifacts/.well-known"}).
 		WithExec([]string{"sh", "-c", "cp -r .well-known/* /src/artifacts/.well-known/ || true"}).
 		WithExec([]string{"sh", "-c", "cp dist/*.sbom.json /src/artifacts/ || true"}).
@@ -322,6 +312,59 @@ func (m *Portctl) Release(ctx context.Context, src *dagger.Directory, githubToke
 	}
 	fmt.Println("[Dagger] release step complete.")
 	return out, nil
+}
+
+// +dagger:call=publishImage
+// --- Publish Image Step ---
+// PublishImage builds and pushes the Docker image using Dagger native build.
+func (m *Portctl) PublishImage(ctx context.Context, src *dagger.Directory, githubToken *dagger.Secret, version *string) (string, error) {
+	fmt.Println("[Dagger] Starting publishImage step...")
+
+	tag := "latest"
+	if version != nil && *version != "" {
+		tag = *version
+	}
+
+	// Define platforms for multi-arch build
+	platforms := []dagger.Platform{"linux/amd64", "linux/arm64"}
+	variants := make([]*dagger.Container, len(platforms))
+
+	for i, platform := range platforms {
+		// Build container for each platform
+		// Note: We use the source directory which contains the Dockerfile
+		variants[i] = src.DockerBuild(dagger.DirectoryDockerBuildOpts{
+			Platform: platform,
+		}).
+			WithLabel("org.opencontainers.image.source", "https://github.com/ckodex-labs/portctl").
+			WithLabel("org.opencontainers.image.version", tag)
+	}
+
+	// Publish to GHCR
+	imageRef := fmt.Sprintf("ghcr.io/ckodex-labs/portctl:%s", tag)
+
+	// We need to authenticate. We assume GITHUB_TOKEN has write:packages scope.
+	// We use the first variant to set up auth, but Publish handles the manifest list.
+	// Actually, WithRegistryAuth is needed on the container that performs the publish?
+	// No, Publish is a method on Container. We call it on a container.
+	// But for multi-arch, we use dag.Container().Publish(..., PlatformVariants: variants).
+	// We need to set auth on *that* container? Or just globally?
+	// Dagger usually handles auth if provided via WithRegistryAuth on the container being published.
+
+	// Let's use an empty container to drive the publish, with auth configured.
+	publisher := dag.Container().
+		WithRegistryAuth("ghcr.io", "github-actions[bot]", githubToken)
+
+	addr, err := publisher.Publish(ctx, imageRef, dagger.ContainerPublishOpts{
+		PlatformVariants: variants,
+	})
+
+	if err != nil {
+		fmt.Printf("[Dagger] PublishImage failed: %v\n", err)
+		return "", fmt.Errorf("Image publish failed: %w", err)
+	}
+
+	fmt.Printf("[Dagger] Published image to %s\n", addr)
+	return addr, nil
 }
 
 // +dagger:call=docs
