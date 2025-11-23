@@ -7,6 +7,6 @@ description = "Secure, cross-platform CLI for managing processes on ports"
 
 [output.html]
 additional-css = ["theme/custom.css"]
-git-repository-url = "https://github.com/mchorfa/portctl"
-edit-url-template = "https://github.com/mchorfa/portctl/edit/main/docs/{path}"
+git-repository-url = "https://github.com/ckodex-labs/portctl"
+edit-url-template = "https://github.com/ckodex-labs/portctl/edit/main/docs/{path}"
 site-url = "/portctl/"
