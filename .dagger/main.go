@@ -280,8 +280,6 @@ cat .well-known/mcp-manifest.jsonld
 	return out, nil
 }
 
-// +dagger:call=release
-// --- Release Step ---
 // Release runs GoReleaser to build and package the project, exporting artifacts.
 func (m *Portctl) Release(ctx context.Context, src *dagger.Directory, githubToken *dagger.Secret, tapGithubToken *dagger.Secret) (string, error) {
 	fmt.Println("[Dagger] Starting release step...")
@@ -293,10 +291,20 @@ func (m *Portctl) Release(ctx context.Context, src *dagger.Directory, githubToke
 		return "", fmt.Errorf("Failed to generate manifest: %w", err)
 	}
 
+	// Start Docker-in-Docker service
+	docker := dag.Container().
+		From("docker:dind").
+		WithEnvVariable("DOCKER_TLS_CERTDIR", ""). // Disable TLS for simplicity in CI
+		WithExec([]string{"dockerd-entrypoint.sh", "--tls=false"}).
+		WithExposedPort(2375).
+		AsService()
+
 	out, err := dag.Container().From("goreleaser/goreleaser:latest").
 		WithMountedDirectory("/src", src).
 		WithWorkdir("/src").
 		WithMountedCache("/go/pkg/mod", goModCache).
+		WithServiceBinding("docker", docker).
+		WithEnvVariable("DOCKER_HOST", "tcp://docker:2375").
 		WithSecretVariable("GITHUB_TOKEN", githubToken).
 		WithSecretVariable("TAP_GITHUB_TOKEN", tapGithubToken).
 		WithEnvVariable("COSIGN_EXPERIMENTAL", "1").
