@@ -34,16 +34,16 @@ sboms:
 brews:
   - name: portctl
     repository:
-      owner: mchorfa
+      owner: ckodex-labs
       name: homebrew-tap
     description: Secure, cross-platform CLI for managing processes on ports.
-    homepage: https://github.com/mchorfa/portctl
+    homepage: https://github.com/ckodex-labs/portctl
     install: |
       bin.install "portctl"
 
 release:
   github:
-    owner: mchorfa
+    owner: ckodex-labs
     name: portctl
   draft: false
   prerelease: auto
