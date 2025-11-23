@@ -34,7 +34,7 @@ This project uses a **modular, MCStack-compliant Dagger pipeline** for full SDLC
   dagger call lint --src=.           # Lint code
   dagger call test --src=.           # Run tests
   dagger call build --src=.          # Build binaries
-  dagger call release --src=.        # Release (GoReleaser)
+  dagger call release --src=. export --path=./artifacts  # Release (GoReleaser) and export artifacts
   dagger call docs --src=.           # Build mdBook docs
   dagger call generate-manifest --src=. # Generate MCP manifest
   dagger call well-known --src=.     # Validate metadata

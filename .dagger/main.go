@@ -281,17 +281,17 @@ cat .well-known/mcp-manifest.jsonld
 }
 
 // Release runs GoReleaser to build and package the project, exporting artifacts.
-func (m *Portctl) Release(ctx context.Context, src *dagger.Directory, githubToken *dagger.Secret, tapGithubToken *dagger.Secret) (string, error) {
+func (m *Portctl) Release(ctx context.Context, src *dagger.Directory, githubToken *dagger.Secret, tapGithubToken *dagger.Secret) (*dagger.Directory, error) {
 	fmt.Println("[Dagger] Starting release step...")
 	goModCache := m.goModCache()
 
 	// Generate MCP manifest from code first
 	_, err := m.GenerateManifest(ctx, src)
 	if err != nil {
-		return "", fmt.Errorf("Failed to generate manifest: %w", err)
+		return nil, fmt.Errorf("Failed to generate manifest: %w", err)
 	}
 
-	out, err := dag.Container().From("goreleaser/goreleaser:latest").
+	container := dag.Container().From("goreleaser/goreleaser:latest").
 		WithMountedDirectory("/src", src).
 		WithWorkdir("/src").
 		WithMountedCache("/go/pkg/mod", goModCache).
@@ -304,14 +304,19 @@ func (m *Portctl) Release(ctx context.Context, src *dagger.Directory, githubToke
 		WithExec([]string{"sh", "-c", "cp dist/*.sbom.json /src/artifacts/ || true"}).
 		WithExec([]string{"sh", "-c", "cp dist/*.intoto.jsonl /src/artifacts/ || true"}).
 		WithExec([]string{"sh", "-c", "cp dist/*.sig /src/artifacts/ || true"}).
-		WithExec([]string{"sh", "-c", "cp dist/*.att /src/artifacts/ || true"}).
-		Stdout(ctx)
+		WithExec([]string{"sh", "-c", "cp dist/*.att /src/artifacts/ || true"})
+
+	// Verify the command succeeded
+	_, err = container.Sync(ctx)
 	if err != nil {
 		fmt.Printf("[Dagger] Release failed: %v\n", err)
-		return "", fmt.Errorf("GoReleaser failed: %w", err)
+		return nil, fmt.Errorf("GoReleaser failed: %w", err)
 	}
+
+	// Export the artifacts directory
+	artifactsDir := container.Directory("/src/artifacts")
 	fmt.Println("[Dagger] release step complete.")
-	return out, nil
+	return artifactsDir, nil
 }
 
 // +dagger:call=publishImage
