@@ -97,13 +97,10 @@ Each release includes:
 - **Docker images**: Published to `ghcr.io/ckodex-labs/portctl` with tags:
   - `latest` - Always points to the latest release
   - `v1.0.x` - Specific version tag
-- **Security & Compliance Artifacts** (SLSA Level 3):
+- **Security & Compliance Artifacts**:
   - `*.sbom.spdx.json` - Software Bill of Materials in SPDX format
   - `*.sbom.cyclonedx.json` - Software Bill of Materials in CycloneDX format
   - `*.intoto.jsonl` - SLSA provenance attestations (in-toto format)
-  - `*.sig` - Cosign cryptographic signatures (keyless signing via GitHub OIDC)
-  - `*.cert` - Signing certificates for verification
-  - `*.att` - Additional attestation files
 - **AI Integration Metadata** (`.well-known/` folder):
   - `mcp-manifest.jsonld` - Model Context Protocol server manifest
   - `llms.txt` - LLM guidance and context for AI agents
