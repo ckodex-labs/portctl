@@ -104,7 +104,7 @@ The MCP server exposes the real capabilities of the `portctl` CLI via a gRPC API
 
 ### Option 1: Build from source
 ```bash
-git clone https://github.com/mchorfa/portctl.git
+git clone https://github.com/ckodex-labs/portctl.git
 cd portctl
 go build -o portctl
 sudo mv portctl /usr/local/bin/  # Optional: add to PATH
@@ -112,15 +112,15 @@ sudo mv portctl /usr/local/bin/  # Optional: add to PATH
 
 ### Option 2: Go install
 ```bash
-go install github.com/mchorfa/portctl@latest
+go install github.com/ckodex-labs/portctl@latest
 ```
 
 ### Option 3: Download binary
-Download the latest binary from the [releases page](https://github.com/mchorfa/portctl/releases).
+Download the latest binary from the [releases page](https://github.com/ckodex-labs/portctl/releases).
 
 ## 📚 Documentation
 
-Full documentation is available at [https://mchorfa.github.io/portctl/](https://mchorfa.github.io/portctl/) (or in the `docs/` directory).
+Full documentation is available at [https://ckodex-labs.github.io/portctl/](https://ckodex-labs.github.io/portctl/) (or in the `docs/` directory).
 
 ## Quick Start
 
@@ -333,7 +333,7 @@ Requirements:
 
 ```bash
 # Clone the repository
-git clone https://github.com/mchorfa/portctl.git
+git clone https://github.com/ckodex-labs/portctl.git
 cd portctl
 
 # Download dependencies

@@ -62,7 +62,7 @@ if command -v portctl &> /dev/null; then
     echo "  portctl kill 8080      # Kill processes on port 8080"
     echo "  portctl --help         # Show help"
     echo ""
-    echo "For more examples, see: https://github.com/mchorfa/portctl"
+    echo "For more examples, see: https://github.com/ckodex-labs/portctl"
 else
     echo "⚠️  Installation may have failed. Please check your PATH."
     echo "Current binary location: $(pwd)/portctl"

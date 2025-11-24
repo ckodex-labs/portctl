@@ -4,8 +4,8 @@
     "name": "portctl",
     "version": "1.0.0",
     "description": "Secure, cross-platform CLI for managing processes on ports",
-    "homepage": "https://github.com/mchorfa/portctl",
-    "documentation": "https://mchorfa.github.io/portctl",
+    "homepage": "https://github.com/ckodex-labs/portctl",
+    "documentation": "https://ckodex-labs.github.io/portctl",
     "protocol": "mcp",
     "capabilities": {
         "tools": true,

@@ -9,14 +9,14 @@ Allow: /
 # Project Metadata
 Project-Name: portctl
 Project-Description: Secure, cross-platform CLI for managing processes on ports. SLSA 4, SBOM, signed releases, and robust automation.
-Project-Homepage: https://github.com/mchorfa/portctl
-Documentation: https://mchorfa.github.io/portctl
+Project-Homepage: https://github.com/ckodex-labs/portctl
+Documentation: https://ckodex-labs.github.io/portctl
 MCP-Manifest: /.well-known/mcp-manifest.jsonld
 Skills: /.well-known/skills.txt
 SBOM: /.well-known/sbom.json
 
 # Contact
-Contact: security@mchorfa.dev
+Contact: security@ckodex-labs.dev
 
 # AI/LLM Policies
 Allow-Interaction: true
