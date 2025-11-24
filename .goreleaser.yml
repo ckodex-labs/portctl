@@ -28,10 +28,13 @@ changelog:
 signs:
   - artifacts: all
     cmd: cosign
+    env:
+      - COSIGN_EXPERIMENTAL=1
     args:
       - sign-blob
       - --output-signature=${signature}
       - --output-certificate=${certificate}
+      - --oidc-issuer=https://token.actions.githubusercontent.com
       - ${artifact}
       - --yes
     
