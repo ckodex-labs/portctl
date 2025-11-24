@@ -83,7 +83,7 @@ The MCP server exposes the real capabilities of the `portctl` CLI via a gRPC API
 2. **Call from a gRPC client:**
    - Use Go, Python, or `grpcurl`:
      ```sh
-     grpcurl -plaintext localhost:50051 mcp.PortctlService/GetStatus
+     grpcurl -plaintext localhost:57251 mcp.PortctlService/GetStatus
      ```
 3. **Integration Test:**
    - Ensure server is running, then:
