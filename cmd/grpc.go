@@ -31,14 +31,14 @@ all portctl operations via a network API. Useful for automation, testing,
 and integration with other tools.
 
 Examples:
-  portctl grpc                    # Start on default port 50051
+  portctl grpc                    # Start on default port 57251
   portctl grpc --port 9090        # Start on custom port`,
 	Run: runGRPC,
 }
 
 func init() {
 	rootCmd.AddCommand(grpcCmd)
-	grpcCmd.Flags().StringVarP(&grpcPort, "port", "p", "50051", "Port to listen on")
+	grpcCmd.Flags().StringVarP(&grpcPort, "port", "p", "57251", "Port to listen on")
 }
 
 type portctlServer struct {
