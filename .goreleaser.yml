@@ -25,20 +25,22 @@ changelog:
       - '^docs:'
       - '^test:'
 
-signs:
-  - cmd: cosign
-    signature: "${artifact}.sig"
-    certificate: "${artifact}.pem"
-    env:
-      - COSIGN_EXPERIMENTAL=1
-    args:
-      - sign-blob
-      - --output-signature=${signature}
-      - --output-certificate=${certificate}
-      - --oidc-issuer=https://token.actions.githubusercontent.com
-      - ${artifact}
-      - --yes
-    artifacts: all
+# Cosign signing disabled temporarily due to PKCE/OIDC issues
+# TODO: Re-enable after resolving GitHub Actions OIDC configuration
+# signs:
+#   - cmd: cosign
+#     signature: "${artifact}.sig"
+#     certificate: "${artifact}.pem"
+#     env:
+#       - COSIGN_EXPERIMENTAL=1
+#     args:
+#       - sign-blob
+#       - --output-signature=${signature}
+#       - --output-certificate=${certificate}
+#       - --oidc-issuer=https://token.actions.githubusercontent.com
+#       - ${artifact}
+#       - --yes
+#     artifacts: all
     
 sboms:
   - id: spdx
