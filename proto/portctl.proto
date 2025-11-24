@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package portctl;
+
+option go_package = "dagger/portctl/proto";
+
+// PortctlService provides gRPC API for port and process management
+service PortctlService {
+  // List running processes, optionally filtered by port or service
+  rpc ListProcesses(ListProcessesRequest) returns (ListProcessesResponse);
+  
+  // Kill a process by PID or port
+  rpc KillProcess(KillProcessRequest) returns (KillProcessResponse);
+  
+  // Scan ports on a host
+  rpc ScanPorts(ScanPortsRequest) returns (ScanPortsResponse);
+  
+  // Get system resource statistics
+  rpc GetSystemStats(SystemStatsRequest) returns (SystemStatsResponse);
+  
+  // Get server status and version
+  rpc GetStatus(StatusRequest) returns (StatusResponse);
+}
+
+// Request to list processes
+message ListProcessesRequest {
+  optional int32 port = 1;        // Filter by specific port
+  optional string service = 2;     // Filter by service name
+  optional string user = 3;        // Filter by user
+}
+
+// A single process
+message Process {
+  int32 pid = 1;
+  int32 port = 2;
+  string command = 3;
+  string service_type = 4;
+  string user = 5;
+  double cpu_percent = 6;
+  double memory_mb = 7;
+  int64 start_time = 8;  // Unix timestamp
+}
+
+// Response with list of processes
+message ListProcessesResponse {
+  repeated Process processes = 1;
+}
+
+// Request to kill a process
+message KillProcessRequest {
+  oneof target {
+    int32 pid = 1;
+    int32 port = 2;
+  }
+  bool force = 3;  // Use SIGKILL instead of SIGTERM
+}
+
+// Response from kill operation
+message KillProcessResponse {
+  bool success = 1;
+  string message = 2;
+  int32 killed_count = 3;
+}
+
+// Request to scan ports
+message ScanPortsRequest {
+  string host = 1;
+  int32 start_port = 2;
+  int32 end_port = 3;
+}
+
+// Result of a single port scan
+message PortScanResult {
+  int32 port = 1;
+  string status = 2;  // "open", "closed", "filtered"
+  string service = 3;
+}
+
+// Response with scan results
+message ScanPortsResponse {
+  repeated PortScanResult results = 1;
+}
+
+// Request for system stats
+message SystemStatsRequest {}
+
+// System statistics
+message SystemStatsResponse {
+  double cpu_percent = 1;
+  double memory_percent = 2;
+  int32 total_processes = 3;
+  int32 listening_ports = 4;
+}
+
+// Request for server status
+message StatusRequest {}
+
+// Server status
+message StatusResponse {
+  string version = 1;
+  int64 uptime_seconds = 2;
+  string server_type = 3;  // "grpc"
+}
