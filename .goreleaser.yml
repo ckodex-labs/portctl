@@ -26,8 +26,9 @@ changelog:
       - '^test:'
 
 signs:
-  - artifacts: all
-    cmd: cosign
+  - cmd: cosign
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
     env:
       - COSIGN_EXPERIMENTAL=1
     args:
@@ -37,6 +38,7 @@ signs:
       - --oidc-issuer=https://token.actions.githubusercontent.com
       - ${artifact}
       - --yes
+    artifacts: all
     
 sboms:
   - id: spdx
