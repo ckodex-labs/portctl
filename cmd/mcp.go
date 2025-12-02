@@ -197,13 +197,28 @@ func registerScanPortsTool(s *server.MCPServer) {
 			endPort = 1000
 		}
 
-		// Use the scan logic from scan.go (we need to expose it or duplicate it slightly since it's in the same package 'cmd')
-		// Since we are in package 'cmd', we can call scanPorts directly if it's exported or just reuse the logic.
-		// scanPorts is in scan.go but it's not exported (lowercase).
-		// However, since we are in the same package `cmd`, we CAN access `scanPorts`!
+		// Validate port range to prevent resource exhaustion
+		startPortInt := int(startPort)
+		endPortInt := int(endPort)
+
+		if startPortInt < 1 || startPortInt > 65535 {
+			return mcp.NewToolResultError(fmt.Sprintf("invalid start port: %d (must be 1-65535)", startPortInt)), nil
+		}
+		if endPortInt < 1 || endPortInt > 65535 {
+			return mcp.NewToolResultError(fmt.Sprintf("invalid end port: %d (must be 1-65535)", endPortInt)), nil
+		}
+		if startPortInt > endPortInt {
+			return mcp.NewToolResultError(fmt.Sprintf("start port (%d) must be less than or equal to end port (%d)", startPortInt, endPortInt)), nil
+		}
+		// Limit scan range to prevent DoS
+		const maxPortRange = 10000
+		portCount := endPortInt - startPortInt + 1 // inclusive range
+		if portCount > maxPortRange {
+			return mcp.NewToolResultError(fmt.Sprintf("port range too large: %d (max %d ports allowed)", portCount, maxPortRange)), nil
+		}
 
 		var ports []int
-		for p := int(startPort); p <= int(endPort); p++ {
+		for p := startPortInt; p <= endPortInt; p++ {
 			ports = append(ports, p)
 		}
 

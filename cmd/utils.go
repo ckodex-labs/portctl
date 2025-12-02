@@ -210,9 +210,12 @@ func runStats(cmd *cobra.Command, args []string) {
 	fmt.Printf("  Memory Used:        %.1f GB\n", stats.MemoryUsageGB)
 	fmt.Printf("  Memory Available:   %.1f GB\n", stats.AvailableMemoryGB)
 
-	// Memory usage bar
+	// Memory usage bar - prevent division by zero
 	totalMemory := stats.MemoryUsageGB + stats.AvailableMemoryGB
-	memoryPercent := (stats.MemoryUsageGB / totalMemory) * 100
+	memoryPercent := 0.0
+	if totalMemory > 0 {
+		memoryPercent = (stats.MemoryUsageGB / totalMemory) * 100
+	}
 	fmt.Printf("  Memory Usage:       %s (%.1f%%)\n",
 		getProgressBar(memoryPercent), memoryPercent)
 
