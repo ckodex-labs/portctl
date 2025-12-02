@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"math"
 	"net"
 	"os"
 	"os/signal"
@@ -16,6 +17,17 @@ import (
 	process "dagger/portctl/pkg"
 	pb "dagger/portctl/proto"
 )
+
+// safeIntToInt32 converts an int to int32 safely, clamping to int32 bounds to prevent overflow.
+func safeIntToInt32(v int) int32 {
+	if v > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if v < math.MinInt32 {
+		return math.MinInt32
+	}
+	return int32(v)
+}
 
 var (
 	grpcPort string
@@ -84,8 +96,8 @@ func (s *portctlServer) ListProcesses(ctx context.Context, req *pb.ListProcesses
 	pbProcesses := make([]*pb.Process, len(processes))
 	for i, p := range processes {
 		pbProcesses[i] = &pb.Process{
-			Pid:         int32(p.PID),
-			Port:        int32(p.Port),
+			Pid:         safeIntToInt32(p.PID),
+			Port:        safeIntToInt32(p.Port),
 			Command:     p.Command,
 			ServiceType: p.ServiceType,
 			User:        p.User,
@@ -159,7 +171,7 @@ func (s *portctlServer) KillProcess(ctx context.Context, req *pb.KillProcessRequ
 		return &pb.KillProcessResponse{
 			Success:     successCount > 0,
 			Message:     msg,
-			KilledCount: int32(successCount),
+			KilledCount: safeIntToInt32(successCount),
 		}, nil
 
 	default:
@@ -176,8 +188,27 @@ func (s *portctlServer) ScanPorts(ctx context.Context, req *pb.ScanPortsRequest)
 		host = "localhost"
 	}
 
+	// Validate port range to prevent resource exhaustion
+	startPort := int(req.StartPort)
+	endPort := int(req.EndPort)
+
+	if startPort < 1 || startPort > 65535 {
+		return nil, fmt.Errorf("invalid start port: %d (must be 1-65535)", startPort)
+	}
+	if endPort < 1 || endPort > 65535 {
+		return nil, fmt.Errorf("invalid end port: %d (must be 1-65535)", endPort)
+	}
+	if startPort > endPort {
+		return nil, fmt.Errorf("start port (%d) must be less than or equal to end port (%d)", startPort, endPort)
+	}
+	// Limit scan range to prevent DoS
+	const maxPortRange = 10000
+	if endPort-startPort > maxPortRange {
+		return nil, fmt.Errorf("port range too large: %d (max %d ports allowed)", endPort-startPort, maxPortRange)
+	}
+
 	var ports []int
-	for p := int(req.StartPort); p <= int(req.EndPort); p++ {
+	for p := startPort; p <= endPort; p++ {
 		ports = append(ports, p)
 	}
 
@@ -186,7 +217,7 @@ func (s *portctlServer) ScanPorts(ctx context.Context, req *pb.ScanPortsRequest)
 	pbResults := make([]*pb.PortScanResult, len(results))
 	for i, r := range results {
 		pbResults[i] = &pb.PortScanResult{
-			Port:    int32(r.Port),
+			Port:    safeIntToInt32(r.Port),
 			Status:  r.Status,
 			Service: r.Service,
 		}
@@ -204,11 +235,18 @@ func (s *portctlServer) GetSystemStats(ctx context.Context, req *pb.SystemStatsR
 		return nil, fmt.Errorf("failed to get system stats: %w", err)
 	}
 
+	// Calculate memory percent safely to avoid division by zero
+	memoryPercent := 0.0
+	totalMemory := stats.MemoryUsageGB + stats.AvailableMemoryGB
+	if totalMemory > 0 {
+		memoryPercent = (stats.MemoryUsageGB / totalMemory) * 100
+	}
+
 	return &pb.SystemStatsResponse{
 		CpuPercent:     stats.CPUUsagePercent,
-		MemoryPercent:  (stats.MemoryUsageGB / (stats.MemoryUsageGB + stats.AvailableMemoryGB)) * 100,
-		TotalProcesses: int32(stats.TotalProcesses),
-		ListeningPorts: int32(stats.ListeningPorts),
+		MemoryPercent:  memoryPercent,
+		TotalProcesses: safeIntToInt32(stats.TotalProcesses),
+		ListeningPorts: safeIntToInt32(stats.ListeningPorts),
 	}, nil
 }
 

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -53,6 +54,7 @@ Examples:
 }
 
 type watchState struct {
+	mu           sync.RWMutex
 	processes    map[string]process.Process
 	lastUpdate   time.Time
 	changes      []string
@@ -130,19 +132,26 @@ func runWatch(cmd *cobra.Command, args []string) {
 					s.Stop()
 				}
 
+				// Check if we have changes (thread-safe read)
+				state.mu.RLock()
+				hasChanges := len(state.changes) > 0
+				changes := make([]string, len(state.changes))
+				copy(changes, state.changes)
+				state.mu.RUnlock()
+
 				// Only print if we have changes or not in changes-only mode
-				if !watchChanges || len(state.changes) > 0 {
+				if !watchChanges || hasChanges {
 					// Clear screen and reprint
 					fmt.Print("\033[2J\033[H")
 					printWatchHeader(targetPort, state)
 					printProcesses(state)
 
-					if len(state.changes) > 0 {
+					if hasChanges {
 						printChanges(state)
 
 						// Send notification if enabled
 						if watchNotify {
-							sendNotification(state.changes, targetPort)
+							sendNotification(changes, targetPort)
 						}
 					}
 				}
@@ -160,7 +169,10 @@ func runWatch(cmd *cobra.Command, args []string) {
 				if !watchContinuous {
 					s.Stop()
 				}
-				color.Green("\n👋 Watch stopped. Total updates: %d", state.totalUpdates)
+				state.mu.RLock()
+				totalUpdates := state.totalUpdates
+				state.mu.RUnlock()
+				color.Green("\n👋 Watch stopped. Total updates: %d", totalUpdates)
 				os.Exit(0)
 			}
 		}
@@ -178,7 +190,10 @@ func runWatch(cmd *cobra.Command, args []string) {
 	if !watchContinuous {
 		s.Stop()
 	}
-	color.Green("\n👋 Watch stopped. Total updates: %d", state.totalUpdates)
+	state.mu.RLock()
+	totalUpdates := state.totalUpdates
+	state.mu.RUnlock()
+	color.Green("\n👋 Watch stopped. Total updates: %d", totalUpdates)
 }
 
 func updateProcesses(ctx context.Context, pm *process.ProcessManager, state *watchState, targetPort int, detectChanges bool) error {
@@ -194,6 +209,10 @@ func updateProcesses(ctx context.Context, pm *process.ProcessManager, state *wat
 	if err != nil {
 		return err
 	}
+
+	// Lock state for thread-safe updates
+	state.mu.Lock()
+	defer state.mu.Unlock()
 
 	// Detect changes if this is an update
 	if detectChanges {
@@ -243,6 +262,9 @@ func detectProcessChanges(oldProcs map[string]process.Process, newProcs []proces
 }
 
 func printWatchHeader(targetPort int, state *watchState) {
+	state.mu.RLock()
+	defer state.mu.RUnlock()
+
 	// Title
 	title := "🔍 portctl Watch Mode"
 	if targetPort > 0 {
@@ -265,6 +287,9 @@ func printWatchHeader(targetPort int, state *watchState) {
 }
 
 func printProcesses(state *watchState) {
+	state.mu.RLock()
+	defer state.mu.RUnlock()
+
 	if len(state.processes) == 0 {
 		fmt.Printf("\033[93mNo processes found\033[0m\n")
 		return
@@ -313,6 +338,9 @@ func printProcesses(state *watchState) {
 }
 
 func printChanges(state *watchState) {
+	state.mu.RLock()
+	defer state.mu.RUnlock()
+
 	if len(state.changes) == 0 {
 		return
 	}
