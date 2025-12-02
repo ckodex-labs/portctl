@@ -135,8 +135,6 @@ func runWatch(cmd *cobra.Command, args []string) {
 				// Check if we have changes (thread-safe read)
 				state.mu.RLock()
 				hasChanges := len(state.changes) > 0
-				changes := make([]string, len(state.changes))
-				copy(changes, state.changes)
 				state.mu.RUnlock()
 
 				// Only print if we have changes or not in changes-only mode
@@ -149,8 +147,12 @@ func runWatch(cmd *cobra.Command, args []string) {
 					if hasChanges {
 						printChanges(state)
 
-						// Send notification if enabled
+						// Send notification if enabled - copy changes only when needed
 						if watchNotify {
+							state.mu.RLock()
+							changes := make([]string, len(state.changes))
+							copy(changes, state.changes)
+							state.mu.RUnlock()
 							sendNotification(changes, targetPort)
 						}
 					}

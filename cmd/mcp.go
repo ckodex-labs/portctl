@@ -212,8 +212,9 @@ func registerScanPortsTool(s *server.MCPServer) {
 		}
 		// Limit scan range to prevent DoS
 		const maxPortRange = 10000
-		if endPortInt-startPortInt > maxPortRange {
-			return mcp.NewToolResultError(fmt.Sprintf("port range too large: %d (max %d ports allowed)", endPortInt-startPortInt, maxPortRange)), nil
+		portCount := endPortInt - startPortInt + 1 // inclusive range
+		if portCount > maxPortRange {
+			return mcp.NewToolResultError(fmt.Sprintf("port range too large: %d (max %d ports allowed)", portCount, maxPortRange)), nil
 		}
 
 		var ports []int

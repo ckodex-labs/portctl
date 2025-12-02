@@ -203,8 +203,9 @@ func (s *portctlServer) ScanPorts(ctx context.Context, req *pb.ScanPortsRequest)
 	}
 	// Limit scan range to prevent DoS
 	const maxPortRange = 10000
-	if endPort-startPort > maxPortRange {
-		return nil, fmt.Errorf("port range too large: %d (max %d ports allowed)", endPort-startPort, maxPortRange)
+	portCount := endPort - startPort + 1 // inclusive range
+	if portCount > maxPortRange {
+		return nil, fmt.Errorf("port range too large: %d (max %d ports allowed)", portCount, maxPortRange)
 	}
 
 	var ports []int
